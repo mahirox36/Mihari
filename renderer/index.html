@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mahiri - Ultimate Video Downloader</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="app-logo">
+          <span class="material-icons">video_library</span>
+          <h1>Mahiri</h1>
+        </div>
+
+        <div class="nav-item active" data-page="download">
+          <span class="material-icons">download</span>
+          <span>Download</span>
+        </div>
+
+        <div class="nav-item" data-page="history">
+          <span class="material-icons">history</span>
+          <span>History</span>
+        </div>
+
+        <div class="nav-item" data-page="settings">
+          <span class="material-icons">settings</span>
+          <span>Settings</span>
+        </div>
+
+        <div class="sidebar-footer">
+          <div class="nav-item" id="theme-toggle">
+            <span class="material-icons">dark_mode</span>
+            <span>Dark Mode</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Download Page -->
+        <div class="page active" id="download-page">
+          <div class="card">
+            <div class="card-header">
+              <h2>Download Video</h2>
+              <button class="btn btn-text" id="advanced-settings-btn">
+                <span class="material-icons">tune</span>
+                Advanced Settings
+              </button>
+            </div>
+            <div class="form-group">
+              <label for="url-input">Video URL</label>
+              <div class="input-group">
+                <div class="input-control">
+                  <input
+                    type="url"
+                    id="url-input"
+                    placeholder="Paste URL here or click the paste button"
+                  />
+                </div>
+                <button class="btn btn-primary" id="paste-btn">
+                  <span class="material-icons">content_paste</span>
+                  Paste Link
+                </button>
+              </div>
+            </div>
+
+            <div class="drag-drop-zone" id="drag-drop-zone">
+              <span class="material-icons">cloud_upload</span>
+              <h3>Drag & Drop URL</h3>
+              <p>You can also drag and drop a URL from your browser</p>
+            </div>
+
+            <div class="form-group">
+              <label>Content Type</label>
+              <div class="options-grid">
+                <div class="option-card selected" data-type="video">
+                  <span class="material-icons">movie</span>
+                  <h4>Video</h4>
+                  <p>Download video with audio</p>
+                </div>
+                <div class="option-card" data-type="audio">
+                  <span class="material-icons">audiotrack</span>
+                  <h4>Audio</h4>
+                  <p>Extract audio only</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" id="video-quality-group">
+              <label>Video Quality</label>
+              <div class="options-grid">
+                <div class="option-card selected" data-quality="best">
+                  <span class="material-icons">high_quality</span>
+                  <h4>Best</h4>
+                  <p>Highest available quality</p>
+                </div>
+                <div class="option-card" data-quality="1080p">
+                  <span class="material-icons">hd</span>
+                  <h4>1080p</h4>
+                  <p>Full HD quality</p>
+                </div>
+                <div class="option-card" data-quality="720p">
+                  <span class="material-icons">hd</span>
+                  <h4>720p</h4>
+                  <p>HD quality</p>
+                </div>
+                <div class="option-card" data-quality="480p">
+                  <span class="material-icons">sd</span>
+                  <h4>480p</h4>
+                  <p>Standard quality</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group hidden" id="audio-quality-group">
+              <label>Audio Quality</label>
+              <div class="options-grid">
+                <div class="option-card selected" data-audio-quality="best">
+                  <span class="material-icons">high_quality</span>
+                  <h4>Best</h4>
+                  <p>Highest available quality</p>
+                </div>
+                <div class="option-card" data-audio-quality="medium">
+                  <span class="material-icons">equalizer</span>
+                  <h4>Medium</h4>
+                  <p>Good quality, smaller size</p>
+                </div>
+                <div class="option-card" data-audio-quality="low">
+                  <span class="material-icons">equalizer</span>
+                  <h4>Low</h4>
+                  <p>Lower quality, smallest size</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group hidden" id="audio-format-group">
+              <label>Audio Format</label>
+              <div class="options-grid">
+                <div class="option-card selected" data-audio-format="mp3">
+                  <span class="material-icons">music_note</span>
+                  <h4>MP3</h4>
+                  <p>Most compatible</p>
+                </div>
+                <div class="option-card" data-audio-format="m4a">
+                  <span class="material-icons">music_note</span>
+                  <h4>M4A</h4>
+                  <p>Better quality</p>
+                </div>
+                <div class="option-card" data-audio-format="flac">
+                  <span class="material-icons">high_quality</span>
+                  <h4>FLAC</h4>
+                  <p>Lossless quality</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="d-flex justify-between align-center">
+                <label>Download Location</label>
+                <button class="btn btn-text btn-sm" id="change-location-btn">
+                  <span class="material-icons">folder</span>
+                  Change
+                </button>
+              </div>
+              <div id="download-location" class="text-secondary mb-md"></div>
+            </div>
+
+            <div id="download-progress" class="hidden">
+              <div class="progress-container">
+                <div class="progress-info">
+                  <div>Downloading...</div>
+                  <div id="progress-percentage">0%</div>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-bar-fill" style="width: 0%"></div>
+                </div>
+                <div class="progress-fragments text-secondary">
+                  <div id="fragment-progress">Fragment: N/A</div>
+                  <div id="download-speed">Speed: N/A</div>
+                  <div id="download-eta">ETA: N/A</div>
+                </div>
+              </div>
+              <div class="d-flex gap-md">
+                <button class="btn btn-danger" id="cancel-download-btn">
+                  <span class="material-icons">cancel</span>
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            <div class="d-flex gap-md" id="download-actions">
+              <button class="btn btn-primary btn-lg" id="download-btn" disabled>
+                <span class="material-icons">download</span>
+                Download
+              </button>
+              <button class="btn btn-outline" id="save-profile-btn">
+                <span class="material-icons">save</span>
+                Save Profile
+              </button>
+            </div>
+
+            <div class="form-group mt-lg">
+              <div class="d-flex justify-between align-center">
+                <label>Batch Download</label>
+                <button class="btn btn-primary btn-sm" id="batch-download-btn">
+                  <span class="material-icons">download_for_offline</span>
+                  Process Batch
+                </button>
+              </div>
+              <textarea
+                id="batch-urls-input"
+                rows="4"
+                placeholder="Enter multiple URLs, one per line"
+              ></textarea>
+              <div class="text-secondary text-sm mt-sm">
+                Enter multiple URLs, one URL per line
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Page -->
+        <div class="page" id="history-page">
+          <div class="card">
+            <div class="card-header">
+              <h2>Download History</h2>
+              <div class="btn-group">
+                <button class="btn btn-outline btn-sm" id="clear-history-btn">
+                  <span class="material-icons">delete</span>
+                  Clear History
+                </button>
+              </div>
+            </div>
+
+            <div class="tabs">
+              <div class="tab active" data-category="all">All</div>
+              <div class="tab" data-category="video">Videos</div>
+              <div class="tab" data-category="audio">Audio</div>
+            </div>
+
+            <div id="history-list">
+              <!-- History items will be dynamically inserted here -->
+              <div class="empty-state hidden" id="empty-history">
+                <span class="material-icons">history</span>
+                <h3>No downloads yet</h3>
+                <p>Your download history will appear here</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div class="page" id="settings-page">
+          <div class="card">
+            <div class="card-header">
+              <h2>Settings</h2>
+            </div>
+
+            <div class="form-group">
+              <label>Default Download Location</label>
+              <div class="d-flex gap-md align-center">
+                <div id="default-location" class="text-secondary"></div>
+                <button
+                  class="btn btn-outline btn-sm"
+                  id="default-location-btn"
+                >
+                  <span class="material-icons">folder</span>
+                  Change
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Saved Profiles</label>
+              <div id="profiles-list">
+                <!-- Profiles will be dynamically inserted here -->
+                <div class="empty-state hidden" id="empty-profiles">
+                  <span class="material-icons">bookmarks</span>
+                  <h3>No saved profiles</h3>
+                  <p>
+                    Save your download settings as profiles for quick access
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Application Settings</label>
+              <div class="d-flex align-center justify-between mb-md">
+                <div>
+                  <div>Auto-paste from clipboard</div>
+                  <div class="text-secondary text-sm">
+                    Automatically paste URL when application starts
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="auto-paste-toggle" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="d-flex align-center justify-between mb-md">
+                <div>
+                  <div>Start download automatically</div>
+                  <div class="text-secondary text-sm">
+                    Start download immediately after pasting valid URL
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="auto-download-toggle" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="d-flex align-center justify-between mb-md">
+                <div>
+                  <div>Monitor clipboard</div>
+                  <div class="text-secondary text-sm">
+                    Detect when you copy a valid video URL
+                  </div>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="monitor-clipboard-toggle" />
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2>About</h2>
+            </div>
+            <div>
+              <p class="mb-md">Mahiri Video Downloader v1.0.0</p>
+              <p class="mb-md">Powered by yt-dlp</p>
+              <p>Created with ❤️ by MahiroX36</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Advanced Settings Panel -->
+    <div class="advanced-settings" id="advanced-settings-panel">
+      <div class="advanced-settings-header">
+        <h2>Advanced Settings</h2>
+        <span
+          class="material-icons advanced-settings-close"
+          id="advanced-settings-close"
+          >close</span
+        >
+      </div>
+
+      <div class="accordion">
+        <div class="accordion-header">
+          <span>Format Selection</span>
+          <span class="material-icons accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+          <div class="form-group">
+            <label for="format-select">Select Specific Format</label>
+            <select id="format-select" disabled>
+              <option value="">Loading formats...</option>
+            </select>
+            <div class="text-secondary text-sm mt-sm">
+              Get formats first by entering a URL and clicking "Load Formats"
+            </div>
+            <button
+              class="btn btn-outline btn-sm mt-sm"
+              id="load-formats-btn"
+              disabled
+            >
+              <span class="material-icons">refresh</span>
+              Load Formats
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion">
+        <div class="accordion-header">
+          <span>Subtitles</span>
+          <span class="material-icons accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+          <div class="form-group">
+            <label for="subtitle-select">Subtitle Options</label>
+            <select id="subtitle-select">
+              <option value="none">No subtitles</option>
+              <option value="auto">Auto-generated subtitles</option>
+              <option value="all">All available subtitles</option>
+            </select>
+          </div>
+          <div class="d-flex align-center justify-between">
+            <div>
+              <div>Embed subtitles in video</div>
+              <div class="text-secondary text-sm">
+                Add subtitles directly to the video file
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="embed-subs-toggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion">
+        <div class="accordion-header">
+          <span>Metadata & Thumbnails</span>
+          <span class="material-icons accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+          <div class="d-flex align-center justify-between mb-md">
+            <div>
+              <div>Embed thumbnail</div>
+              <div class="text-secondary text-sm">
+                Add video thumbnail to the media file
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="embed-thumbnail-toggle" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="d-flex align-center justify-between">
+            <div>
+              <div>Embed metadata</div>
+              <div class="text-secondary text-sm">
+                Add title, author and other info to the file
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="embed-metadata-toggle" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion">
+        <div class="accordion-header">
+          <span>Playlist Options</span>
+          <span class="material-icons accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+          <div class="d-flex align-center justify-between mb-md">
+            <div>
+              <div>Download playlist</div>
+              <div class="text-secondary text-sm">
+                Download all videos in a playlist
+              </div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="playlist-toggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="form-group" id="playlist-items-group">
+            <label for="playlist-items">Playlist Items</label>
+            <input
+              type="text"
+              id="playlist-items"
+              placeholder="e.g. 1-3,7,10-12"
+            />
+            <div class="text-secondary text-sm">
+              Enter item numbers or ranges (e.g. 1-3,7,10-12)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="accordion">
+        <div class="accordion-header">
+          <span>Advanced Options</span>
+          <span class="material-icons accordion-icon">expand_more</span>
+        </div>
+        <div class="accordion-content">
+          <div class="form-group">
+            <label for="output-template">Output Filename Template</label>
+            <input type="text" id="output-template" value="%(title)s.%(ext)s" />
+            <div class="text-secondary text-sm">
+              Custom filename format. See yt-dlp documentation for format
+              options
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="merge-format">Merge Format</label>
+            <select id="merge-format">
+              <option value="mp4">MP4</option>
+              <option value="mkv">MKV</option>
+              <option value="webm">WebM</option>
+            </select>
+            <div class="text-secondary text-sm">
+              Container format for merged video+audio
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="cookies-file">Cookies File</label>
+            <div class="d-flex gap-md">
+              <input
+                type="text"
+                id="cookies-file"
+                placeholder="No file selected"
+                disabled
+              />
+              <button class="btn btn-outline" id="cookies-file-btn">
+                Select File
+              </button>
+            </div>
+            <div class="text-secondary text-sm">
+              Required for some websites that need authentication
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="proxy">Proxy URL</label>
+            <input
+              type="text"
+              id="proxy"
+              placeholder="e.g. socks5://127.0.0.1:1080"
+            />
+            <div class="text-secondary text-sm">
+              Optional proxy for downloads
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-lg">
+        <button class="btn btn-primary btn-block" id="apply-advanced-settings">
+          <span class="material-icons">check</span>
+          Apply Settings
+        </button>
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Keyboard Shortcuts Panel -->
+    <div class="keyboard-shortcuts" id="keyboard-shortcuts">
+      <div class="keyboard-shortcuts-header">
+        <h3>Keyboard Shortcuts</h3>
+        <span
+          class="material-icons keyboard-shortcuts-close"
+          id="keyboard-shortcuts-close"
+          >close</span
+        >
+      </div>
+      <div id="keyboard-shortcuts-list">
+        <!-- Will be populated dynamically -->
+      </div>
+    </div>
+
+    <!-- Help Button -->
+    <div class="help-btn" id="help-btn">
+      <span class="material-icons">keyboard</span>
+    </div>
+
+    <!-- Toastify JS -->
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <!-- App Scripts -->
+    <script src="app.js"></script>
+  </body>
+</html>

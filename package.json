@@ -1,0 +1,77 @@
+{
+  "name": "mahiri",
+  "version": "1.0.0",
+  "description": "Ultimate Video Downloader powered by yt-dlp",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "package": "electron-builder --win",
+    "package-all": "electron-builder -mwl"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@material/web": "^2.3.0",
+    "electron-store": "^10.0.1",
+    "toastify-js": "^1.12.0"
+  },
+  "devDependencies": {
+    "electron": "^36.2.1",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.mahiri.videodownloader",
+    "productName": "Mahiri",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!**/*.{md,markdown,MD}",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/.bin",
+      "!dist/**/*",
+      "!build/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "yt-dlp.exe",
+        "to": "yt-dlp.exe"
+      },
+      {
+        "from": "ffmpeg.exe",
+        "to": "ffmpeg.exe"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        "dmg"
+      ],
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "category": "Utility",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icon.png"
+    }
+  }
+}
