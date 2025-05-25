@@ -1,9 +1,9 @@
-# 🌸 Mahiri — Your Adorable Video & Audio Downloader 💖
+# 🌸 Mihari — Your Adorable Video & Audio Downloader 💖
 
-Mahiri is a sleek, fast, and _super customizable_ media downloader powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp)!  
-Whether you're saving a single song or downloading an entire playlist, Mahiri makes it easy, efficient, and cute. ✨
+Mihari is a sleek, fast, and _super customizable_ media downloader powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp)!  
+Whether you're saving a single song or downloading an entire playlist, Mihari makes it easy, efficient, and cute. ✨
 
-![Mahiri Screenshot](assets/app.png)
+![Mihari Screenshot](assets/app.png)
 
 ---
 
@@ -23,9 +23,9 @@ Whether you're saving a single song or downloading an entire playlist, Mahiri ma
 
 ---
 
-## 💡 Why Mahiri?
+## 💡 Why Mihari?
 
-Mahiri is built for those who want power _and_ personality.  
+Mihari is built for those who want power _and_ personality.  
 With its intuitive interface and cute vibes, it’s your perfect companion for downloading anything from anywhere — fast, easy, and full of sparkle. 🌟
 
 ---
@@ -40,13 +40,13 @@ With its intuitive interface and cute vibes, it’s your perfect companion for d
 ## 💖 License
 
 This project is licensed under the MIT License.  
-Use it, modify it, share it — Mahiri loves making friends!
+Use it, modify it, share it — Mihari loves making friends!
 
 ---
 
 ## 🌟 More Screenshots
 
-A peek into Mahiri’s world! 🖼️
+A peek into Mihari’s world! 🖼️
 
 ### ⚙️ Advanced Settings
 

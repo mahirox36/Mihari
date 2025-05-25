@@ -98,6 +98,9 @@ const autoDownloadToggle = document.getElementById("auto-download-toggle");
 const monitorClipboardToggle = document.getElementById(
   "monitor-clipboard-toggle"
 );
+window.appInfo.onVersion((version) => {
+  document.getElementById("version").textContent = version;
+});
 
 // Application state
 let currentType = "video";

@@ -11,6 +11,7 @@ const fs = require("fs");
 const os = require("os");
 const Store = require("electron-store");
 const Downloader = require("./downloader");
+const { version } = require("./package.json");
 
 // Initialize data storage
 const store = new Store();
@@ -31,7 +32,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 700,
     frame: true,
-    title: "Mahiri - Ultimate Video Downloader",
+    title: "Mihari - Ultimate Video Downloader",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       nodeIntegration: false,
@@ -40,6 +41,11 @@ function createWindow() {
     },
     icon: path.join(__dirname, "assets", "icon.png"),
   }); // Load the index.html file
+
+  mainWindow.webContents.on("did-finish-load", () => {
+    mainWindow.webContents.send("app-version", version);
+  });
+
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
 }
 

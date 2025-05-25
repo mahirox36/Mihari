@@ -1,6 +1,6 @@
 {
-  "name": "mahiri",
-  "version": "1.0.0",
+  "name": "mihari",
+  "version": "1.0.1",
   "description": "Ultimate Video Downloader powered by yt-dlp",
   "main": "main.js",
   "scripts": {
@@ -23,8 +23,8 @@
     "electron-builder": "^24.13.3"
   },
   "build": {
-    "appId": "com.mahiri.videodownloader",
-    "productName": "Mahiri",
+    "appId": "com.mihari.videodownloader",
+    "productName": "Mihari",
     "directories": {
       "output": "dist"
     },

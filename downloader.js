@@ -17,7 +17,7 @@ class Downloader {
         : path.join(process.cwd(), "yt-dlp.exe")
       : path.join(process.cwd(), "yt-dlp.exe");
 
-    this.defaultOutputPath = path.join(os.homedir(), "Videos", "Mahiri");
+    this.defaultOutputPath = path.join(os.homedir(), "Videos", "Mihari");
     this.currentProcess = null;
     this.cancelRequested = false;
 

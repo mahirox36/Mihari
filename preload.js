@@ -39,3 +39,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   getHistory: () => ipcRenderer.invoke("get-history"),
   clearHistory: () => ipcRenderer.invoke("clear-history"),
 });
+
+contextBridge.exposeInMainWorld('appInfo', {
+  version: null,
+  onVersion: (callback) => ipcRenderer.on('app-version', (event, version) => callback(version)),
+});
