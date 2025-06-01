@@ -38,16 +38,6 @@
       "!dist/**/*",
       "!build/**/*"
     ],
-    "extraResources": [
-      {
-        "from": "yt-dlp.exe",
-        "to": "yt-dlp.exe"
-      },
-      {
-        "from": "ffmpeg.exe",
-        "to": "ffmpeg.exe"
-      }
-    ],
     "win": {
       "target": [
         "nsis"
