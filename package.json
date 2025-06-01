@@ -15,8 +15,9 @@
   "type": "commonjs",
   "dependencies": {
     "@material/web": "^2.3.0",
-    "electron-store": "^10.0.1",
-    "toastify-js": "^1.12.0"
+    "electron-store": "^7.0.1",
+    "toastify-js": "^1.12.0",
+    "adm-zip": "^0.5.10"
   },
   "devDependencies": {
     "electron": "^36.2.1",
