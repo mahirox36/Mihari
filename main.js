@@ -235,6 +235,8 @@ class WindowManager {
 
     // Load the downloading page first
     mainWindow.loadFile(path.join(__dirname, "renderer", "downloading.html"));
+
+    mainWindow.setMenuBarVisibility(false);
     
     return mainWindow;
   }
@@ -243,6 +245,17 @@ class WindowManager {
 let mainWindow;
 let downloader; // Move downloader declaration here, instantiate after binaries are ready
 
+// --- BEGIN: Binary path resolution for asar/unpacked ---
+function getUnpackedPath(filename) {
+  // If running from inside app.asar, use app.asar.unpacked for binaries
+  let basePath = __dirname;
+  if (app && app.isPackaged && basePath.includes('app.asar')) {
+    basePath = basePath.replace('app.asar', 'app.asar.unpacked');
+  }
+  return path.join(basePath, filename);
+}
+// --- END: Binary path resolution for asar/unpacked ---
+
 // --- BEGIN: Auto-download dependencies ---
 const BINARIES = [
   {
@@ -250,14 +263,14 @@ const BINARIES = [
     displayName: 'YouTube Downloader',
     filename: process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
     url: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe',
-    local: path.join(__dirname, 'yt-dlp.exe'),
+    local: getUnpackedPath(process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp'),
   },
   {
     name: 'ffmpeg',
     displayName: 'Media Processor',
     filename: 'ffmpeg.exe',
     url: 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip',
-    local: path.join(__dirname, 'ffmpeg.exe'),
+    local: getUnpackedPath('ffmpeg.exe'),
     isZip: true,
     zipEntry: /ffmpeg.exe$/i,
   },
@@ -266,7 +279,7 @@ const BINARIES = [
     displayName: 'Media Analyzer',
     filename: 'ffprobe.exe',
     url: 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip',
-    local: path.join(__dirname, 'ffprobe.exe'),
+    local: getUnpackedPath('ffprobe.exe'),
     isZip: true,
     zipEntry: /ffprobe.exe$/i,
   },
@@ -490,7 +503,7 @@ async function ensureBinaries(mainWindow) {
 const AUTO_UPDATE = {
   FORCE: false, // Set to true to force auto-update for testing
   BASE_URL: 'https://github.com/mahirox36/Mihari',
-  INSTALLER_NAME: 'Mahiri-Setup.exe',
+  INSTALLER_NAME: 'Mihari-Setup.exe',
   USER_AGENT: 'Mihari-Updater',
   CHECK_INTERVAL: 1000 * 60 * 60, // Check every hour
   MAX_RETRIES: 3,
