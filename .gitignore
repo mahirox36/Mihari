@@ -1,3 +1,7 @@
 node_modules/
 dist/*
 ffmpeg.exe
+ffplay.exe
+ffprobe.exe
+yt-dlp.exe
+changelog.md
