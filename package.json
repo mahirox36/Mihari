@@ -26,6 +26,7 @@
   "build": {
     "appId": "com.mihari.videodownloader",
     "productName": "Mihari",
+    "artifactName": "Mihari-Setup.exe",
     "directories": {
       "output": "dist"
     },
@@ -48,21 +49,6 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
-    },
-    "mac": {
-      "category": "public.app-category.utilities",
-      "target": [
-        "dmg"
-      ],
-      "icon": "assets/icon.icns"
-    },
-    "linux": {
-      "category": "Utility",
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "icon": "assets/icon.png"
     }
   }
 }

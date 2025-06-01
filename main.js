@@ -246,13 +246,29 @@ let mainWindow;
 let downloader; // Move downloader declaration here, instantiate after binaries are ready
 
 // --- BEGIN: Binary path resolution for asar/unpacked ---
-function getUnpackedPath(filename) {
-  // If running from inside app.asar, use app.asar.unpacked for binaries
-  let basePath = __dirname;
-  if (app && app.isPackaged && basePath.includes('app.asar')) {
-    basePath = basePath.replace('app.asar', 'app.asar.unpacked');
+function getBinaryPath(filename) {
+  if (app.isPackaged) {
+    // In production, try these paths in order:
+    const paths = [
+      // 1. extraResources path
+      path.join(process.resourcesPath, filename),
+      // 2. app directory
+      path.join(app.getPath('userData'), filename),
+      // 3. exe directory
+      path.join(path.dirname(app.getPath('exe')), filename)
+    ];
+    
+    // Return the first path that exists, or the userData path if none exist
+    for (const p of paths) {
+      if (fsSync.existsSync(p)) {
+        return p;
+      }
+    }
+    return paths[1]; // Return userData path for downloading
   }
-  return path.join(basePath, filename);
+  
+  // In development
+  return path.join(__dirname, filename);
 }
 // --- END: Binary path resolution for asar/unpacked ---
 
@@ -263,14 +279,14 @@ const BINARIES = [
     displayName: 'YouTube Downloader',
     filename: process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp',
     url: 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe',
-    local: getUnpackedPath(process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp'),
+    local: getBinaryPath(process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp'),
   },
   {
     name: 'ffmpeg',
     displayName: 'Media Processor',
     filename: 'ffmpeg.exe',
     url: 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip',
-    local: getUnpackedPath('ffmpeg.exe'),
+    local: getBinaryPath('ffmpeg.exe'),
     isZip: true,
     zipEntry: /ffmpeg.exe$/i,
   },
@@ -279,7 +295,7 @@ const BINARIES = [
     displayName: 'Media Analyzer',
     filename: 'ffprobe.exe',
     url: 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip',
-    local: getUnpackedPath('ffprobe.exe'),
+    local: getBinaryPath('ffprobe.exe'),
     isZip: true,
     zipEntry: /ffprobe.exe$/i,
   },
