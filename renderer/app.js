@@ -1,4 +1,4 @@
-// Access Electron API
+// Access Electron API with enhanced type definitions
 const {
   getClipboardText,
   validateUrl,
@@ -17,7 +17,80 @@ const {
   onProgress,
   onComplete,
   onError,
+  verifyFile,
+  getVideoInfo,
+  onVersion,
 } = window.electronAPI;
+
+// Application State Management
+const AppState = {
+  currentDownload: null,
+  availableFormats: [],
+  clipboardMonitor: null,
+  settings: {},
+  downloadQueue: [],
+  currentFormat: null,
+  videoInfo: null,
+};
+
+// Download state management
+const DownloadState = {
+  MAX_CONCURRENT: 2,
+  activeDownloads: new Map(),
+  queue: [],
+  
+  addDownload(url, options) {
+    const download = { url, options, startTime: Date.now(), progress: 0 };
+    if (this.activeDownloads.size < this.MAX_CONCURRENT) {
+      this.activeDownloads.set(url, download);
+      return true;
+    }
+    this.queue.push(download);
+    return false;
+  },
+
+  removeDownload(url) {
+    this.activeDownloads.delete(url);
+    if (this.queue.length > 0 && this.activeDownloads.size < this.MAX_CONCURRENT) {
+      const next = this.queue.shift();
+      this.activeDownloads.set(next.url, next);
+      downloadVideo(next.url, next.options);
+    }
+  },
+
+  updateProgress(url, progress) {
+    const download = this.activeDownloads.get(url);
+    if (download) {
+      download.progress = progress;
+      download.lastUpdate = Date.now();
+      download.speed = this.calculateSpeed(download);
+      download.eta = this.calculateETA(download);
+    }
+  },
+
+  calculateSpeed(download) {
+    const elapsed = (Date.now() - download.lastSpeedUpdate) / 1000;
+    if (elapsed > 0) {
+      const progressDelta = download.progress - download.lastProgress;
+      const speed = progressDelta / elapsed;
+      download.lastProgress = download.progress;
+      download.lastSpeedUpdate = Date.now();
+      download.speeds = download.speeds || [];
+      download.speeds.push(speed);
+      if (download.speeds.length > 5) download.speeds.shift();
+      return download.speeds.reduce((a, b) => a + b) / download.speeds.length;
+    }
+    return 0;
+  },
+
+  calculateETA(download) {
+    if (download.speed > 0) {
+      const remaining = 100 - download.progress;
+      return Math.ceil(remaining / download.speed);
+    }
+    return 0;
+  }
+};
 
 // DOM Elements
 const urlInput = document.getElementById("url-input");
@@ -218,17 +291,22 @@ function setupDragAndDrop() {
 async function init() {
   // Load output path
   const outputPath = await getOutputPath();
-  downloadLocation.textContent = outputPath;
-  defaultLocation.textContent = outputPath;
+  downloadLocation.textContent = outputPath.path;
+  defaultLocation.textContent = outputPath.path;
 
-  // Load settings from localStorage
-  loadSettings();
+  // Initialize state
+  AppState.settings = loadSettings();
+  
+  // Load history and profiles
+  await Promise.all([
+    loadHistoryList(),
+    loadProfilesList()
+  ]);
 
-  // Load history
-  loadHistoryList();
-
-  // Load profiles
-  loadProfilesList();
+  // Apply app version
+  window.appInfo.onVersion((version) => {
+    document.getElementById("version").textContent = version;
+  });
 
   // Apply dark mode if needed
   if (localStorage.getItem("darkMode") === "true") {
@@ -421,49 +499,7 @@ function registerEventListeners() {
   });
 
   // Batch download button
-  batchDownloadBtn.addEventListener("click", () => {
-    const urls = batchUrlsInput.value
-      .trim()
-      .split("\n")
-      .filter((url) => url.trim() !== "");
-
-    if (urls.length === 0) {
-      showToast("Please enter at least one URL", "error");
-      return;
-    }
-
-    const validUrls = urls.filter((url) => validateUrl(url.trim()));
-    const invalidUrls = urls.length - validUrls.length;
-
-    if (invalidUrls > 0) {
-      showToast(
-        `Warning: ${invalidUrls} invalid URLs will be skipped`,
-        "warning"
-      );
-    }
-
-    if (validUrls.length === 0) {
-      showToast("No valid URLs to download", "error");
-      return;
-    }
-
-    // Process the first URL immediately
-    if (validUrls.length > 0) {
-      urlInput.value = validUrls[0];
-      batchUrlsInput.value = validUrls.slice(1).join("\n");
-
-      showToast(
-        `Processing batch: ${validUrls.length} URLs (${
-          validUrls.length -
-          batchUrlsInput.value.split("\n").filter((url) => url.trim() !== "")
-            .length
-        }/${validUrls.length})`,
-        "info"
-      );
-
-      downloadVideo();
-    }
-  });
+  batchDownloadBtn.addEventListener("click", processBatchDownload);
 
   // Update button selection logic for type options
   typeOptions.forEach((option) => {
@@ -727,26 +763,7 @@ function registerEventListeners() {
 
     setTimeout(() => {
       resetDownloadUI();
-
-      // Check if there are more URLs in the batch
-      const remainingUrls = batchUrlsInput.value
-        .trim()
-        .split("\n")
-        .filter((url) => url.trim() !== "" && validateUrl(url.trim()));
-      if (remainingUrls.length > 0) {
-        urlInput.value = remainingUrls[0];
-        batchUrlsInput.value = remainingUrls.slice(1).join("\n");
-
-        showToast(
-          `Processing next in batch: ${remainingUrls.length + 1} remaining`,
-          "info"
-        );
-
-        // Short delay before starting next download
-        setTimeout(() => {
-          downloadVideo();
-        }, 1000);
-      }
+      processNextInQueue();
     }, 2000);
   });
 
@@ -800,90 +817,142 @@ async function handlePaste() {
 }
 
 // Start download
-function downloadVideo() {
-  const url = urlInput.value.trim();
+async function downloadVideo(url = urlInput.value.trim(), options = null) {
   if (!url || downloadInProgress) return;
-  urlInput.value = "";
 
-  downloadInProgress = true;
-  downloadProgress.classList.remove("hidden");
-  downloadActions.classList.add("hidden");
-
-  // Build options
-  const options = {
-    url,
-    type: currentType,
-  };
-
-  // Add quality options
-  if (currentType === "video") {
-    options.videoQuality = currentVideoQuality;
-  } else {
-    options.audioQuality = currentAudioQuality;
-    options.audioFormat = currentAudioFormat;
-  }
-
-  // Add advanced options
-  if (advancedSettingsData.format) {
-    options.format = advancedSettingsData.format;
-  }
-
-  if (advancedSettingsData.subtitles !== "none") {
-    options.subtitles = advancedSettingsData.subtitles;
-    options.embedSubs = advancedSettingsData.embedSubs;
-  }
-
-  options.embedThumbnail = advancedSettingsData.embedThumbnail;
-  options.embedMetadata = advancedSettingsData.embedMetadata;
-  options.mergeFormat = advancedSettingsData.mergeFormat;
-
-  if (advancedSettingsData.playlist) {
-    options.playlist = true;
-    if (advancedSettingsData.playlistItems) {
-      options.playlistItems = advancedSettingsData.playlistItems;
+  // Validate URL and check info before starting
+  try {
+    const info = await getVideoInfo(url);
+    AppState.videoInfo = info;
+    
+    if (info.isPlaylist && !advancedSettingsData.playlist) {
+      if (confirm("This URL contains a playlist. Do you want to enable playlist download?")) {
+        advancedSettingsData.playlist = true;
+        playlistToggle.checked = true;
+        playlistItemsGroup.style.display = "block";
+      }
     }
+
+    urlInput.value = "";
+    downloadInProgress = true;
+    downloadProgress.classList.remove("hidden");
+    downloadActions.classList.add("hidden");
+
+    // Build enhanced options
+    const downloadOptions = options || {
+      url,
+      type: currentType,
+      videoInfo: info,
+      videoQuality: currentType === "video" ? currentVideoQuality : undefined,
+      audioQuality: currentType === "audio" ? currentAudioQuality : undefined,
+      audioFormat: currentType === "audio" ? currentAudioFormat : undefined,
+      ...advancedSettingsData
+    };
+
+    AppState.currentDownload = {
+      url,
+      options: downloadOptions,
+      startTime: Date.now()
+    };
+
+    if (DownloadState.addDownload(url, downloadOptions)) {
+      // Start download
+      startDownload(downloadOptions);
+    } else {
+      showToast("Download added to queue", "info");
+    }
+  } catch (error) {
+    showToast(`Failed to prepare download: ${error.message}`, "error");
+  }
+}
+
+// Enhanced batch download handling
+function processBatchDownload() {
+  const urls = batchUrlsInput.value
+    .trim()
+    .split("\n")
+    .filter(url => url.trim() !== "");
+
+  if (urls.length === 0) {
+    showToast("Please enter at least one URL", "error");
+    return;
   }
 
-  if (advancedSettingsData.outputTemplate) {
-    options.outputTemplate = advancedSettingsData.outputTemplate;
+  // Filter valid URLs and warn about invalid ones
+  const validUrls = urls.filter(url => validateUrl(url.trim()));
+  const invalidCount = urls.length - validUrls.length;
+
+  if (invalidCount > 0) {
+    showToast(`Warning: ${invalidCount} invalid URLs will be skipped`, "warning");
   }
 
-  if (advancedSettingsData.proxy) {
-    options.proxy = advancedSettingsData.proxy;
+  if (validUrls.length === 0) {
+    showToast("No valid URLs to download", "error");
+    return;
   }
 
-  if (advancedSettingsData.cookiesFile) {
-    options.cookiesFile = advancedSettingsData.cookiesFile;
+  // Add URLs to download queue
+  AppState.downloadQueue = validUrls;
+  showToast(`Starting batch download: ${validUrls.length} items`, "info");
+
+  // Start first download
+  processNextInQueue();
+}
+
+function processNextInQueue() {
+  if (AppState.downloadQueue.length === 0 || downloadInProgress) {
+    if (AppState.downloadQueue.length === 0) {
+      showToast("Batch download completed!", "success");
+    }
+    return;
   }
 
-  // Start download
-  startDownload(options);
+  const nextUrl = AppState.downloadQueue.shift();
+  urlInput.value = nextUrl;
+  downloadVideo();
 }
 
 // Update progress UI
 function updateProgressUI(progress) {
   if (!downloadInProgress) return;
 
-  const percent = Math.round(progress.percent * 100) / 100; // Round to 2 decimal places
+  // Round to 2 decimal places for smoother display
+  const percent = Math.round(progress.percent * 100) / 100;
   progressPercentage.textContent = `${percent}%`;
   progressBarFill.style.width = `${percent}%`;
 
-  // Parse fragment information
+  // Show fragment progress for segmented downloads
   if (progress.totalFragments > 0) {
-    fragmentProgress.textContent = `Fragment: ${progress.currentFragment}/${progress.totalFragments}`;
+    const fragmentPercent = (progress.currentFragment / progress.totalFragments) * 100;
+    fragmentProgress.textContent = `Fragment: ${progress.currentFragment}/${progress.totalFragments} (${Math.round(fragmentPercent)}%)`;
   } else {
-    fragmentProgress.textContent = "Fragment: N/A";
+    fragmentProgress.textContent = progress.stage || "Downloading...";
   }
 
-  // Parse speed and ETA from output
-  const speedMatch = progress.output.match(/at\s+([\d.]+\w+\/s)/);
-  if (speedMatch) {
-    downloadSpeed.textContent = `Speed: ${speedMatch[1]}`;
+  // Parse and format speed display
+  if (progress.speed) {
+    const speedNum = parseFloat(progress.speed);
+    if (!isNaN(speedNum)) {
+      const formattedSpeed = speedNum >= 1024 
+        ? `${(speedNum/1024).toFixed(1)} MB/s`
+        : `${speedNum.toFixed(1)} KB/s`;
+      downloadSpeed.textContent = `Speed: ${formattedSpeed}`;
+    }
   }
 
-  const etaMatch = progress.output.match(/ETA\s+([\d:]+)/);
-  if (etaMatch) {
-    downloadEta.textContent = `ETA: ${etaMatch[1]}`;
+  // Format and display ETA
+  if (progress.eta) {
+    const etaMinutes = Math.floor(progress.eta / 60);
+    const etaSeconds = progress.eta % 60;
+    downloadEta.textContent = `ETA: ${etaMinutes}m ${etaSeconds}s`;
+  }
+
+  // Update document title with progress
+  document.title = `${percent}% - Mihari Download`;
+
+  // Update state management
+  if (AppState.currentDownload) {
+    DownloadState.updateProgress(AppState.currentDownload.url, percent);
   }
 }
 
@@ -899,8 +968,8 @@ function resetDownloadUI() {
   downloadEta.textContent = "ETA: N/A";
 }
 
-// Show a toast notification
-function showToast(message, type = "info") {
+// Show a toast notification with enhanced error handling and better visual feedback
+function showToast(message, type = "info", duration = 3000) {
   console.log("Toast:", message, type);
   const iconMap = {
     success: "check_circle",
@@ -910,6 +979,12 @@ function showToast(message, type = "info") {
   };
 
   const icon = iconMap[type] || "info";
+  const bgColor = {
+    success: "#00C853",
+    error: "#FF1744",
+    warning: "#FFA000",
+    info: "#2979FF"
+  }[type] || "#2979FF";
 
   Toastify({
     text: `<div class="d-flex align-center gap-md">
@@ -927,7 +1002,8 @@ function showToast(message, type = "info") {
 // Load history list
 async function loadHistoryList(category = "all") {
   try {
-    const history = await getHistory();
+    const res = await getHistory();
+    const history = (res && Array.isArray(res.history)) ? res.history : [];
 
     if (history.length === 0) {
       emptyHistory.classList.remove("hidden");
@@ -945,7 +1021,7 @@ async function loadHistoryList(category = "all") {
 
     historyList.innerHTML = "";
 
-    filteredHistory.forEach((item) => {
+    (filteredHistory || []).forEach((item) => {
       const date = new Date(item.date);
       const formattedDate =
         date.toLocaleDateString() + " " + date.toLocaleTimeString();
@@ -1043,7 +1119,8 @@ async function loadHistoryList(category = "all") {
 // Load profiles list
 async function loadProfilesList() {
   try {
-    const profiles = await getProfiles();
+    const res = await getProfiles();
+    const profiles = (res && Array.isArray(res.profiles)) ? res.profiles : [];
 
     if (profiles.length === 0) {
       emptyProfiles.classList.remove("hidden");
@@ -1054,7 +1131,7 @@ async function loadProfilesList() {
     emptyProfiles.classList.add("hidden");
     profilesList.innerHTML = "";
 
-    profiles.forEach((profile) => {
+    (profiles || []).forEach((profile) => {
       const profileItem = document.createElement("div");
       profileItem.className = "history-item";
 

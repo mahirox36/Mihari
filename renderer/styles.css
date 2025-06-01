@@ -623,7 +623,7 @@ input::placeholder {
   gap: var(--spacing-md);
   min-width: 300px;
   max-width: 500px;
-  animation: slideIn var(--transition-normal);
+  animation: slideIn 0.3s ease;
 }
 
 .toast-success {

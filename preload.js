@@ -22,6 +22,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onError: (callback) =>
     ipcRenderer.on("download-error", (event, error) => callback(error)),
 
+  // Dependency and update download status/progress
+  onDependencyStatus: (callback) =>
+    ipcRenderer.on("dependency-download-status", (event, status) => callback(status)),
+  onDependencyProgress: (callback) =>
+    ipcRenderer.on("dependency-download-progress", (event, progress) => callback(progress)),
+
   // File path operations
   selectOutputPath: () => ipcRenderer.invoke("select-output-path"),
   getOutputPath: () => ipcRenderer.invoke("get-output-path"),
@@ -38,9 +44,20 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // History management
   getHistory: () => ipcRenderer.invoke("get-history"),
   clearHistory: () => ipcRenderer.invoke("clear-history"),
+  getVideoInfo: (url) => ipcRenderer.invoke("get-video-info"),
+  verifyFile: (filePath) => ipcRenderer.invoke("verify-file")
 });
 
 contextBridge.exposeInMainWorld('appInfo', {
   version: null,
   onVersion: (callback) => ipcRenderer.on('app-version', (event, version) => callback(version)),
+});
+
+contextBridge.exposeInMainWorld('electron', {
+  ipcRenderer: {
+    on: (...args) => ipcRenderer.on(...args),
+    send: (...args) => ipcRenderer.send(...args),
+    invoke: (...args) => ipcRenderer.invoke(...args),
+    removeAllListeners: (...args) => ipcRenderer.removeAllListeners(...args)
+  }
 });
