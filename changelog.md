@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.2]
+
+## [Release 2025-06-10]
+
+### Fixed
+
+- Pasting and download errors
+
+### Removed
+
+- Url drop
+
+---
+
 ## [v1.0.1]
 
 ## [Release 2025-06-01]

@@ -828,15 +828,10 @@ ipcMain.handle("get-clipboard-text", async () => {
   }
 });
 
-ipcMain.handle("validate-url", async (event, url) => {
-  try {
-    const isValid = await downloader.validateUrl(url);
-    return { success: true, isValid };
-  } catch (error) {
-    console.error('URL validation failed:', error);
-    return { success: false, error: error.message };
-  }
+ipcMain.handle("validate-url", (event, url) => {
+  return downloader.validateUrl(url);
 });
+
 
 ipcMain.handle("get-formats", async (event, url) => {
   try {
@@ -1094,7 +1089,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Enhanced history management
 ipcMain.handle("get-video-info", async (event, url) => {
   try {
-    const info = await Downloader.getVideoInfo(url);
+    const info = await downloader.getVideoInfo(url);
     return { success: true, info };
   } catch (error) {
     console.error('Failed to get info:', error);

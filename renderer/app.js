@@ -768,8 +768,10 @@ function registerEventListeners() {
   });
 
   onError((error) => {
-    showToast("Download error: " + error, "error");
-    resetDownloadUI();
+    const message = typeof error === "string" ? error
+                 : error?.message || JSON.stringify(error);
+  showToast("Download error: " + message, "error");
+  resetDownloadUI();
 
     // Check if there are more URLs in the batch and continue despite error
     const remainingUrls = batchUrlsInput.value
@@ -796,8 +798,9 @@ function registerEventListeners() {
 // Handle paste from clipboard
 async function handlePaste() {
   try {
-    const text = await getClipboardText();
-    const isValid = validateUrl(text);
+    const text = await getClipboardText().text;
+    console.log(text)
+    const isValid = validateUrl(text).isValid;
 
     if (isValid) {
       urlInput.value = text;

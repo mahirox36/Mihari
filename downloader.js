@@ -9,11 +9,6 @@ const Store = require("electron-store");
 // Constants
 const TIMEOUT_MS = 30000; // 30 seconds timeout for format fetching
 const MAX_RETRIES = 3;
-const SUPPORTED_SITES = [
-  'youtube.com', 'youtu.be', 'vimeo.com', 'dailymotion.com', 
-  'twitch.tv', 'soundcloud.com', 'bandcamp.com', 'twitter.com',
-  'instagram.com', 'tiktok.com', 'facebook.com'
-];
 
 class DownloadError extends Error {
   constructor(message, code = null, details = null) {
@@ -119,20 +114,12 @@ class Downloader {
         return false;
       }
 
-      // Check if domain is supported (optional warning, not blocking)
-      const hostname = urlObj.hostname.toLowerCase();
-      const isSupported = SUPPORTED_SITES.some(site => 
-        hostname.includes(site) || hostname.endsWith('.' + site)
-      );
-
       return {
         isValid: true,
-        isSupported,
-        hostname: urlObj.hostname,
         url: url.trim()
       };
     } catch (error) {
-      return { isValid: false, error: 'Invalid URL format' };
+      return { isValid: false, error: error.message };
     }
   }
 
