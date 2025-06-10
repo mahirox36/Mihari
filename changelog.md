@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Pasting and download errors
+- yt-dlp wasn't working in production build
 
 ### Removed
 

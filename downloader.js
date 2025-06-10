@@ -19,6 +19,31 @@ class DownloadError extends Error {
   }
 }
 
+function getBinaryPath(filename) {
+  if (app.isPackaged) {
+    // In production, try these paths in order:
+    const paths = [
+      // 1. extraResources path
+      path.join(process.resourcesPath, filename),
+      // 2. app directory
+      path.join(app.getPath('userData'), filename),
+      // 3. exe directory
+      path.join(path.dirname(app.getPath('exe')), filename)
+    ];
+    
+    // Return the first path that exists, or the userData path if none exist
+    for (const p of paths) {
+      if (fsSync.existsSync(p)) {
+        return p;
+      }
+    }
+    return paths[1]; // Return userData path for downloading
+  }
+  
+  // In development
+  return path.join(__dirname, filename);
+}
+
 class Downloader {
   constructor() {
     this.store = new Store({
@@ -43,31 +68,7 @@ class Downloader {
 
   async initializePaths() {
     // Determine yt-dlp path with better fallback logic
-    const isProduction = !process.env.NODE_ENV || process.env.NODE_ENV === "production";
-    
-    const possiblePaths = [
-      // Production paths
-      path.join(process.resourcesPath, "yt-dlp.exe"),
-      path.join(process.resourcesPath, "yt-dlp"),
-      // Development paths
-      path.join(process.cwd(), "yt-dlp.exe"),
-      path.join(process.cwd(), "yt-dlp"),
-      // System paths
-      "yt-dlp.exe",
-      "yt-dlp"
-    ];
-
-    for (const ytdlpPath of possiblePaths) {
-      try {
-        if (await this.fileExists(ytdlpPath)) {
-          this.ytdlpPath = ytdlpPath;
-          console.log(`Found yt-dlp at: ${ytdlpPath}`);
-          break;
-        }
-      } catch (error) {
-        continue;
-      }
-    }
+    this.ytdlpPath = getBinaryPath(process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp')
 
     if (!this.ytdlpPath) {
       throw new DownloadError(

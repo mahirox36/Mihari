@@ -37,7 +37,10 @@
       "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
       "!**/node_modules/.bin",
       "!dist/**/*",
-      "!build/**/*"
+      "!build/**/*",
+      "yt-dlp.exe",
+      "ffmpeg.exe",
+      "ffprobe.exe"
     ],
     "win": {
       "target": [
