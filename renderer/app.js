@@ -266,13 +266,13 @@ function setupDragAndDrop() {
     dragDropZone.classList.remove("active");
   });
 
-  dragDropZone.addEventListener("drop", (e) => {
+  dragDropZone.addEventListener("drop", async (e) => {
     e.preventDefault();
     e.stopPropagation();
     dragDropZone.classList.remove("active");
 
     const text = e.dataTransfer.getData("text");
-    if (text && validateUrl(text)) {
+    if (text && await validateUrl(text)) {
       urlInput.value = text;
       downloadBtn.disabled = false;
       loadFormatsBtn.disabled = false;
@@ -396,9 +396,10 @@ function saveSettings() {
 // Register all event listeners
 function registerEventListeners() {
   // URL input change
-  urlInput.addEventListener("input", () => {
+  urlInput.addEventListener("input", async () => {
     const url = urlInput.value.trim();
-    const isValid = validateUrl(url);
+    const isValidResponse = await validateUrl(url);
+    const isValid = isValidResponse.isValid;
     downloadBtn.disabled = !isValid;
     loadFormatsBtn.disabled = !isValid;
 
@@ -466,12 +467,12 @@ function registerEventListeners() {
     e.stopPropagation();
   });
 
-  document.getElementById("download-page").addEventListener("drop", (e) => {
+  document.getElementById("download-page").addEventListener("drop", async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
     const text = e.dataTransfer.getData("text");
-    if (text && validateUrl(text)) {
+    if (text && await validateUrl(text)) {
       urlInput.value = text;
       downloadBtn.disabled = false;
       loadFormatsBtn.disabled = false;
@@ -777,7 +778,7 @@ function registerEventListeners() {
     const remainingUrls = batchUrlsInput.value
       .trim()
       .split("\n")
-      .filter((url) => url.trim() !== "" && validateUrl(url.trim()));
+      .filter(async (url) => url.trim() !== "" && await validateUrl(url.trim()));
     if (remainingUrls.length > 0) {
       urlInput.value = remainingUrls[0];
       batchUrlsInput.value = remainingUrls.slice(1).join("\n");
@@ -798,11 +799,14 @@ function registerEventListeners() {
 // Handle paste from clipboard
 async function handlePaste() {
   try {
-    const text = await getClipboardText().text;
-    console.log(text)
-    const isValid = validateUrl(text).isValid;
+    const response = await getClipboardText();
+    const text = response.text;
+    console.log(text);
+    
+    const isValid = await validateUrl(text);
+    console.log(isValid);
 
-    if (isValid) {
+    if (isValid.isValid) {
       urlInput.value = text;
       downloadBtn.disabled = false;
       loadFormatsBtn.disabled = false;
@@ -882,7 +886,7 @@ function processBatchDownload() {
   }
 
   // Filter valid URLs and warn about invalid ones
-  const validUrls = urls.filter(url => validateUrl(url.trim()));
+  const validUrls = urls.filter(async url => await validateUrl(url.trim()));
   const invalidCount = urls.length - validUrls.length;
 
   if (invalidCount > 0) {
@@ -1308,7 +1312,7 @@ function startClipboardMonitor() {
       // Check if content changed and is a valid URL
       if (
         clipboardContent !== lastClipboardContent &&
-        validateUrl(clipboardContent)
+        await validateUrl(clipboardContent)
       ) {
         lastClipboardContent = clipboardContent;
 
