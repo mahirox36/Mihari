@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.3]
+
+## [Release 2025-06-11]
+
+### Removed
+
+- auto binaries download
+
 ## [v1.0.2]
 
 ## [Release 2025-06-10]

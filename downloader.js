@@ -28,7 +28,9 @@ function getBinaryPath(filename) {
       // 2. app directory
       path.join(app.getPath('userData'), filename),
       // 3. exe directory
-      path.join(path.dirname(app.getPath('exe')), filename)
+      path.join(path.dirname(app.getPath('exe')), filename),
+
+      path.join(process.resourcesPath, 'bin')
     ];
     
     // Return the first path that exists, or the userData path if none exist
@@ -41,7 +43,7 @@ function getBinaryPath(filename) {
   }
   
   // In development
-  return path.join(__dirname, filename);
+  return path.join(__dirname, "bin");
 }
 
 class Downloader {
@@ -161,7 +163,7 @@ class Downloader {
             const info = JSON.parse(stdout);
             const formats = this.parseFormatsFromJson(info);
             resolve(formats);
-          } catch (parseError) {
+          } catch {
             // Fallback to -F format if JSON parsing fails
             this.getFormatsLegacy(url).then(resolve).catch(reject);
           }
@@ -809,7 +811,7 @@ class Downloader {
                 viewCount: info.view_count,
                 uploadDate: info.upload_date
               });
-            } catch (parseError) {
+            } catch {
               reject(new DownloadError("Failed to parse video info", "INFO_PARSE_FAILED"));
             }
           } else {

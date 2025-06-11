@@ -17,9 +17,7 @@ const {
   onProgress,
   onComplete,
   onError,
-  verifyFile,
   getVideoInfo,
-  onVersion,
 } = window.electronAPI;
 
 // Application State Management
@@ -123,6 +121,7 @@ const audioQualityOptions = document.querySelectorAll(
 const audioFormatOptions = document.querySelectorAll(
   ".option-card[data-audio-format]"
 );
+// eslint-disable-next-line no-unused-vars
 const helpBtn = document.getElementById("help-btn");
 const batchDownloadBtn = document.getElementById("batch-download-btn");
 const batchUrlsInput = document.getElementById("batch-urls-input");
@@ -151,8 +150,8 @@ const playlistItemsGroup = document.getElementById("playlist-items-group");
 const playlistItems = document.getElementById("playlist-items");
 const outputTemplate = document.getElementById("output-template");
 const mergeFormat = document.getElementById("merge-format");
+// eslint-disable-next-line no-unused-vars
 const cookiesFile = document.getElementById("cookies-file");
-const cookiesFileBtn = document.getElementById("cookies-file-btn");
 const proxy = document.getElementById("proxy");
 
 // History elements
@@ -182,6 +181,7 @@ let currentAudioQuality = "best";
 let currentAudioFormat = "mp3";
 let downloadInProgress = false;
 let clipboardMonitorInterval = null;
+// eslint-disable-next-line no-unused-vars
 let availableFormats = [];
 let advancedSettingsData = {
   format: null,
@@ -757,7 +757,7 @@ function registerEventListeners() {
     updateProgressUI(progress);
   });
 
-  onComplete((result) => {
+  onComplete(() => {
     progressBarFill.style.width = "100%";
     progressPercentage.textContent = "100%";
     showToast("Download completed successfully", "success");
@@ -769,6 +769,7 @@ function registerEventListeners() {
   });
 
   onError((error) => {
+    console.log(error)
     const message = typeof error === "string" ? error
                  : error?.message || JSON.stringify(error);
   showToast("Download error: " + message, "error");
@@ -976,7 +977,7 @@ function resetDownloadUI() {
 }
 
 // Show a toast notification with enhanced error handling and better visual feedback
-function showToast(message, type = "info", duration = 3000) {
+function showToast(message, type = "info") {
   console.log("Toast:", message, type);
   const iconMap = {
     success: "check_circle",
@@ -986,13 +987,8 @@ function showToast(message, type = "info", duration = 3000) {
   };
 
   const icon = iconMap[type] || "info";
-  const bgColor = {
-    success: "#00C853",
-    error: "#FF1744",
-    warning: "#FFA000",
-    info: "#2979FF"
-  }[type] || "#2979FF";
 
+  // eslint-disable-next-line no-undef
   Toastify({
     text: `<div class="d-flex align-center gap-md">
                 <span class="material-icons">${icon}</span>
