@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+pydantic
+rich
+aiofiles
+aiohttp

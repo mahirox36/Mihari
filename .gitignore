@@ -1,7 +1,10 @@
-node_modules/
-dist/*
-ffmpeg.exe
-ffplay.exe
-ffprobe.exe
-yt-dlp.exe
-android-version
+bin/
+temp/
+app.db
+downloads/
+cache/
+old.*
+android-version/
+desktop/
+web/
+__pycache__/

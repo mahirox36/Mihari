@@ -1,5 +1,38 @@
 {
     "cSpell.words": [
         "Toastify"
-    ]
+    ],
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/node_modules" : true,
+        "**/bin" : true,
+        "**/**dist**" : true,
+        "**/assets" : true,
+        "**/package-lock.json" : true,
+        "android-version":true,
+        "desktop":true,
+        "cache":true,
+        "downloads":true,
+        "server":true,
+        "temp":true,
+        "web":true,
+    },
+    "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.tsc.autoDetect": "off",
+  "json.schemas": [
+    {
+      "fileMatch": [
+        "/*electron-builder.json5",
+        "/*electron-builder.json"
+      ],
+      "url": "https://json.schemastore.org/electron-builder"
+    }
+  ],
+  "material-icon-theme.folders.associations": {
+    "android-version":"android"
+  }
 }

@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "android-version"
+		},
+		{
+			"path": "desktop"
+		},
+		{
+			"path": "server"
+		},
+		{
+			"path": "web"
+		}
+	],
+	"settings": {
+		"typescript.tsdk": "node_modules/typescript/lib",
+		"typescript.tsc.autoDetect": "off",
+		"material-icon-theme.folders.associations": {
+			"android-version": "android"
+		}
+	}
+}
