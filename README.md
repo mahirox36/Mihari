@@ -2,6 +2,7 @@
 
 Mihari is a sleek, fast, and _super customizable_ media downloader powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp)!  
 Whether you're saving a single song or downloading an entire playlist, Mihari makes it easy, efficient, and cute. ✨
+👉 **[Download Mihari for Windows](https://github.com/mahirox36/Mihari/releases/latest)**, Just grab the `Mihari-Setup.exe` and you're good to go!
 
 ![Mihari Screenshot](assets/app.png)
 
@@ -20,6 +21,19 @@ Whether you're saving a single song or downloading an entire playlist, Mihari ma
 - 🌚 **Dark Mode Support** — For late-night downloading sessions.
 - 📁 **Custom Download Folder** — Save media wherever _you_ want.
 - ⚡ **Keyboard Shortcuts** — Fly through downloads like a pro.
+
+---
+
+## 🚀 Large Core Changes Incoming!
+
+Mihari is evolving from a simple HTML + JS app into a full-fledged system powered by **React + TypeScript** on the frontend, bringing you a smoother and more modern experience! 💻✨
+
+- 🌟 **Frontend Overhaul:** The desktop app will be rebuilt using React + TypeScript for better performance and maintainability.
+- 📱 **New Platforms:** An Android version and a website version are in development, so Mihari can be with you everywhere.
+- 🛠️ **Backend Server:** A dedicated backend will handle all the heavy lifting for the website and Android apps.
+- 🖥️ **Desktop Independence:** The desktop version will stay fully local — no server required — ensuring fast, private, and offline-friendly use.
+
+The backend server is almost finished! Next up: wrapping up the desktop app, publishing its release, and then moving on to the Android and web versions. Everything is currently in progress and shaping up nicely! 🌸
 
 ---
 
