@@ -8,3 +8,4 @@ android-version/
 desktop/
 web/
 __pycache__/
+*sqlite*

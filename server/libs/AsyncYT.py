@@ -241,7 +241,7 @@ class DownloadResponse(BaseModel):
 
     success: bool
     message: str
-    file_path: Optional[str] = None
+    filename: Optional[str] = None
     video_info: Optional[VideoInfo] = None
     error: Optional[str] = None
 
@@ -250,7 +250,7 @@ class DownloadResponse(BaseModel):
             "example": {
                 "success": True,
                 "message": "Download completed successfully",
-                "file_path": "./downloads/Rick Astley - Never Gonna Give You Up.mp4",
+                "filename": "./downloads/Rick Astley - Never Gonna Give You Up.mp4",
                 "video_info": {
                     "title": "Rick Astley - Never Gonna Give You Up",
                     "duration": 212,
@@ -457,7 +457,7 @@ class AsyncYTDownloader:
         url: str,
         config: Optional[DownloadConfig] = None,
         progress_callback: Optional[Callable[[DownloadProgress], Union[None, Awaitable[None]]]] = None,
-    ) -> None:
+    ) -> str:
         """Download a video with the given configuration"""
         if not config:
             config = DownloadConfig()  # type: ignore
@@ -480,7 +480,7 @@ class AsyncYTDownloader:
             cwd=output_dir,
         )
 
-        output_file = None
+        output_file: str
 
         # Monitor progress
         async for line in self._read_process_output(process):
@@ -492,9 +492,9 @@ class AsyncYTDownloader:
 
             # Capture output filename
             if "[download] Destination:" in line:
-                output_file = line.split("Destination: ")[1]
+                output_file: str = line.split("Destination: ")[1]
             elif "[download]" in line and "has already been downloaded" in line:
-                output_file = line.split()[1]
+                output_file: str = line.split()[1]
 
         await process.wait()
 
@@ -505,6 +505,7 @@ class AsyncYTDownloader:
             progress.status = "finished"
             progress.percentage = 100.0
             await call_callback(progress_callback, progress)
+        return output_file
 
     async def health_check(self) -> HealthResponse:
         """Check if all binaries are available and working"""
@@ -581,12 +582,12 @@ class AsyncYTDownloader:
                 )
 
             # Download the video
-            file_path = await self.download(request.url, config, progress_callback)
+            filename = await self.download(request.url, config, progress_callback)
 
             return DownloadResponse(
                 success=True,
                 message="Download completed successfully",
-                file_path=file_path,
+                filename=filename,
                 video_info=video_info,
             )
 
@@ -638,8 +639,8 @@ class AsyncYTDownloader:
                         )
                         progress_callback(overall_progress)
 
-                    file_path = await self.download(video_entry["webpage_url"], config)
-                    downloaded_files.append(file_path)
+                    filename = await self.download(video_entry["webpage_url"], config)
+                    downloaded_files.append(filename)
 
                 except Exception as e:
                     failed_downloads.append(
@@ -688,10 +689,10 @@ class AsyncYTDownloader:
                 progress_callback(overall_progress)
 
             try:
-                file_path = await self.download(
+                filename = await self.download(
                     video_url["webpage_url"], config, progress_callback
                 )
-                downloaded_files.append(file_path)
+                downloaded_files.append(filename)
             except Exception as e:
                 print(f"Failed to download {video_url.get('title', 'Unknown')}: {e}")
 
@@ -931,10 +932,10 @@ async def main():
         print(f"👤 Uploader: {info.uploader}")
 
         # Download the video
-        file_path = await downloader.download(
+        filename = await downloader.download(
             "https://www.youtube.com/watch?v=dQw4w9WgXcQ", config, progress_handler
         )
-        print(f"✅ Downloaded: {file_path}")
+        print(f"✅ Downloaded: {filename}")
     except Exception as e:
         console.print_exception(show_locals=True)
 
