@@ -6,7 +6,7 @@ from tortoise.models import Model
 from datetime import datetime, timedelta, timezone
 from tortoise.transactions import in_transaction
 
-from libs.AsyncYT import (
+from asyncyt import (
     DownloadConfig,
     DownloadProgress,
     DownloadResponse,

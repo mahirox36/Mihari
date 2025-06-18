@@ -9,3 +9,4 @@ desktop/
 web/
 __pycache__/
 *sqlite*
+Mihari.code-workspace
