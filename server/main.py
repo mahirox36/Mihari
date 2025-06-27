@@ -35,7 +35,8 @@ from asyncyt import (
     AudioFormat,
     VideoFormat,
 )
-from libs.Models import Downloads, init as _db_init
+from libs.Models import Downloads, Users, init as _db_init
+from libs.basemodels import GetSettings, SaveSettings
 
 downloader: Downloader = Downloader()
 HEARTBEAT_INTERVAL = 15
@@ -98,7 +99,7 @@ api = APIRouter(prefix="/api/v1")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["0.0.0.0", "localhost", "127.0.0.1"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -114,7 +115,7 @@ def create_progress_callback(download: Downloads):
     return progress_callback
 
 
-@api.get("/health", response_model=HealthResponse, tags=["Health"])
+@api.get("/health", response_model=HealthResponse, tags=["Other"])
 async def health_check():
     """Check API and binary health status"""
     if not downloader:
@@ -230,7 +231,7 @@ async def get_supported_formats():
     }
 
 
-@api.post("/validate-config", tags=["Config"])
+@api.post("/validate-config", tags=["Other"])
 async def validate_config(config: DownloadConfig):
     """Validate a download configuration"""
     try:
@@ -245,7 +246,7 @@ class BatchDownloadRequest(BaseModel):
     config: Optional[DownloadConfig] = None
 
 
-@api.post("/batch-download", tags=["Batch"])
+@api.post("/download/batch", tags=["Download"])
 async def batch_download(
     request: BatchDownloadRequest, background_tasks: BackgroundTasks
 ):
@@ -270,7 +271,7 @@ async def batch_download(
     return {"batch_id": batch_id, "total_urls": len(request.urls), "results": results}
 
 
-@api.get("/history", tags=["other"])
+@api.get("/history", tags=["Other"])
 async def get_history():
     return await Downloads.get_user_downloads(as_model=True)
 
@@ -278,8 +279,16 @@ async def get_history():
 @api.websocket("/ws/download")
 async def websocket_download(websocket: WebSocket):
     """WebSocket endpoint for real-time download progress"""
+    print("Connection attempt!")
     await websocket.accept()
-
+    
+    # Configuration
+    IDLE_TIMEOUT = 300  # 5 minutes of inactivity before closing
+    
+    # Flags to control connection state
+    download_active = False
+    last_activity = asyncio.get_event_loop().time()
+    
     async def send_heartbeat():
         while True:
             try:
@@ -287,51 +296,159 @@ async def websocket_download(websocket: WebSocket):
             except Exception:
                 break
             await asyncio.sleep(HEARTBEAT_INTERVAL)
-
-    heartbeat_task = asyncio.create_task(send_heartbeat())
-
-    try:
-        while True:
-            data = await websocket.receive_json()
-            if data.get("type", "") == "pong":
-                continue
-
-            request = DownloadRequest(**data)
-
+    
+    async def handle_messages():
+        """Handle incoming WebSocket messages"""
+        nonlocal download_active, last_activity
+        try:
+            while True:
+                data = await websocket.receive_json()
+                last_activity = asyncio.get_event_loop().time()  # Update activity timestamp
+                
+                if data.get("type", "") == "pong":
+                    # Handle pong responses
+                    continue
+                elif not download_active:
+                    # Only start new downloads if none is active
+                    request = DownloadRequest(**data)
+                    download_active = True
+                    
+                    # Start download in background
+                    download_task = asyncio.create_task(
+                        process_download(request)
+                    )
+                    
+                    # Don't await here - let it run concurrently
+                    # The download will send its own completion/error messages
+        except WebSocketDisconnect:
+            logger.info("Client disconnected")
+        except Exception as e:
+            logger.warning(f"Message handling error: {e}")
+    
+    async def process_download(request: DownloadRequest):
+        """Process download in background while allowing message handling"""
+        nonlocal download_active, last_activity
+        try:
+            last_activity = asyncio.get_event_loop().time()  # Update activity at start
+            
             async def ws_progress_callback(progress: DownloadProgress):
-                await websocket.send_json(
-                    {"type": "progress", "data": progress.model_dump()}
-                )
-
+                nonlocal last_activity
+                try:
+                    await websocket.send_json(
+                        {"type": "progress", "data": progress.model_dump()}
+                    )
+                    last_activity = asyncio.get_event_loop().time()  # Update on progress
+                except Exception as e:
+                    logger.warning(f"Failed to send progress: {e}")
+            
+            result = await downloader.download_with_response(
+                request, ws_progress_callback
+            )
+            
+            await websocket.send_json(
+                {"type": "complete", "data": result.model_dump()}
+            )
+            last_activity = asyncio.get_event_loop().time()  # Update on completion
+            
+            # OPTION 1: Keep WebSocket open for multiple downloads (recommended)
+            # WebSocket stays open, client can send more download requests
+            
+            # OPTION 2: Close WebSocket after download (uncomment if desired)
+            # await websocket.close()
+            # return  # This will end the connection
+            
+        except Exception as e:
+            await websocket.send_json(
+                {"type": "error", "data": {"error": str(e)}}
+            )
+            last_activity = asyncio.get_event_loop().time()  # Update on error
+        finally:
+            download_active = False
+    
+    async def handle_idle_timeout():
+        """Monitor for idle timeout and close connection if inactive"""
+        nonlocal last_activity
+        while True:
             try:
-                result = await downloader.download_with_response(
-                    request, ws_progress_callback
-                )
-
-                await websocket.send_json(
-                    {"type": "complete", "data": result.model_dump()}
-                )
-
-                break
-
+                await asyncio.sleep(30)  # Check every 30 seconds
+                current_time = asyncio.get_event_loop().time()
+                idle_time = current_time - last_activity
+                
+                if idle_time >= IDLE_TIMEOUT and not download_active:
+                    logger.info(f"Closing WebSocket due to idle timeout ({idle_time:.1f}s)")
+                    await websocket.close(code=1000, reason="Idle timeout")
+                    break
+                    
             except Exception as e:
-                await websocket.send_json({"type": "error", "data": {"error": str(e)}})
-
-    except WebSocketDisconnect:
-        logger.info("Client disconnected")
+                logger.warning(f"Idle timeout handler error: {e}")
+                break
+    
+    # Start concurrent tasks
+    heartbeat_task = asyncio.create_task(send_heartbeat())
+    message_task = asyncio.create_task(handle_messages())
+    timeout_task = asyncio.create_task(handle_idle_timeout())
+    
+    try:
+        # Wait for any task to complete (usually message_task on disconnect or timeout_task on idle)
+        done, pending = await asyncio.wait(
+            [heartbeat_task, message_task, timeout_task],
+            return_when=asyncio.FIRST_COMPLETED
+        )
+        
+        # Cancel remaining tasks
+        for task in pending:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+                
     except Exception as e:
         logger.warning(f"WebSocket error: {e}")
     finally:
-        heartbeat_task.cancel()
-        try:
-            await heartbeat_task
-        except asyncio.CancelledError:
-            pass
+        # Cleanup
+        for task in [heartbeat_task, message_task, timeout_task]:
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+        
         try:
             await websocket.close()
         except Exception:
             pass
 
+
+@api.post("/setting", tags=["settings"])
+async def save_setting(request: SaveSettings):
+    try: 
+        user, _ = await Users.get_or_create(id=1)
+        await user.set_setting(request.key, request.value)
+        return {"status":"success"}
+    except Exception as e:
+        logger.error(e)
+        return {"status":"failed", "error":str(e)}
+
+@api.get("/setting", tags=["settings"])
+async def get_setting(request: GetSettings):
+    try: 
+        user, _ = await Users.get_or_create(id=1)
+        value = user.get_setting(request.key, request.default)
+        return {"status":"success", "value": value}
+    except Exception as e:
+        logger.error(e)
+        return {"status":"failed", "error":str(e)}
+
+@api.get("/settings", tags=["settings"])
+async def get_settings():
+    try: 
+        user, _ = await Users.get_or_create(id=1)
+        return {"status":"success", "value": user.settings}
+    except Exception as e:
+        logger.error(e)
+        return {"status":"failed", "error":str(e)}
 
 
 app.include_router(api)

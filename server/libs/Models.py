@@ -241,3 +241,25 @@ class Downloads(Model):
                 "eta",
             ]
         )
+
+
+
+class Users(Model):
+    id = fields.IntField(pk=True)
+    
+    settings = fields.JSONField(default={
+        "auto_paste": False,
+        "auto_download": True,
+        "download_path": str(Path.home() / "Videos" / "Mihari")
+    })
+    
+    
+    def get_setting(self, key: str, default: Optional[Any] = None):
+        return self.settings.get(key, default)
+    
+    async def set_setting(self, key: str, value: Any):
+        settings = self.settings.copy()
+        settings[key] = value
+        self.settings = settings
+        await self.save(update_fields=['settings'])
+        return self.settings
