@@ -279,7 +279,6 @@ async def get_history():
 @api.websocket("/ws/download")
 async def websocket_download(websocket: WebSocket):
     """WebSocket endpoint for real-time download progress"""
-    print("Connection attempt!")
     await websocket.accept()
     
     # Configuration
@@ -350,12 +349,6 @@ async def websocket_download(websocket: WebSocket):
             )
             last_activity = asyncio.get_event_loop().time()  # Update on completion
             
-            # OPTION 1: Keep WebSocket open for multiple downloads (recommended)
-            # WebSocket stays open, client can send more download requests
-            
-            # OPTION 2: Close WebSocket after download (uncomment if desired)
-            # await websocket.close()
-            # return  # This will end the connection
             
         except Exception as e:
             await websocket.send_json(
