@@ -1,11 +1,12 @@
 # 🌸 Mihari — Your Adorable Video & Audio Downloader 💖
 
 **Mihari** is a sleek, fast, and _super customizable_ media downloader powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp)!  
-Whether you're saving a single song or downloading an entire playlist, Mihari makes it easy, efficient, and cute too! ✨
+Whether you're saving a single song or downloading an entire playlist, **Mihari** makes it easy, efficient, and cute too! ✨
 👉 **[Download Mihari for Windows](https://github.com/mahirox36/Mihari/releases/latest)**, Just grab `Mihari-Setup.exe` and you’re ready to go!
 
 ![Mihari Screenshot](assets/new_app.png)
-> Note: this image is a preview of the next version of the app, if you want to know the [current app looks](#-current-app-looks) go to the bottom
+> Note: this image is a preview of the next version of the app, if you want to know the [current app look](#-current-app-look) go to the bottom
+
 ---
 
 ## ✨ Features
@@ -56,6 +57,6 @@ With its intuitive interface and cute vibes, it’s your perfect companion for d
 This project is licensed under the MIT License.  
 Use it, modify it, share it — **Mihari** loves making friends!
 
-## 🌟 Current app looks
+## 🌟 Current app look
 
 ![Mihari Screenshot](assets/app.png)
