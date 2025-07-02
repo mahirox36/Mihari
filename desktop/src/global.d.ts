@@ -22,6 +22,13 @@ declare global {
         text?: string;
         error?: any;
       };
+      onBackendReady: (callback: () => void) => void;
+      on?: (channel: string, callback: (...args: any[]) => void) => void;
+      removeListener?: (
+        channel: string,
+        callback: (...args: any[]) => void
+      ) => void;
+      invoke: (channel: string, ...args: any[]) => Promise<any>;
     };
   }
 }

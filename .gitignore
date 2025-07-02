@@ -9,3 +9,7 @@ web/
 __pycache__/
 *sqlite*
 Mihari.code-workspace
+dist
+build
+Mihari backend.spec
+build.bat

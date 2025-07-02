@@ -11,7 +11,6 @@
         "**/node_modules" : true,
         "**/bin" : true,
         "**/**dist**" : true,
-        "**/assets" : true,
         "**/package-lock.json" : true,
         "android-version":true,
         "desktop":true,

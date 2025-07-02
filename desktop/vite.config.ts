@@ -16,7 +16,6 @@ export default defineConfig({
       },
       preload: {
         // Shortcut of `build.rollupOptions.input`.
-        // Preload scripts may contain Web assets, so use the `build.rollupOptions.input` instead `build.lib.entry`.
         input: path.join(__dirname, 'electron/preload.ts'),
       },
       // Ployfill the Electron and Node.js API for Renderer process.
@@ -28,4 +27,15 @@ export default defineConfig({
         : {},
     }),
   ],
+  build: {
+    outDir: 'dist',
+    assetsDir: '.',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    },
+    emptyOutDir: true
+  },
+  base: './',
 })

@@ -1,13 +1,49 @@
 {
   "name": "mihari",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.0",
+  "description": "Mihari: Ultimate Video Downloader powered",
   "type": "module",
+  "author": "MahiroX36",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
+  },
+  "build": {
+    "appId": "online.mahirou.mihari",
+    "productName": "Mihari",
+    "artifactName": "Mihari-Setup.exe",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "dist",
+      "dist-electron",
+      "!**/*.{md,markdown,MD}",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/.bin",
+      "!build/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "../assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "extraResources": [
+      {
+        "from": "../server/dist/Mihari backend.exe",
+        "to": "Mihari backend.exe"
+      }
+    ]
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.8",
@@ -17,7 +53,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.5.2",
-    "tailwindcss": "^4.1.8"
+    "tailwindcss": "^4.1.8",
+    "tree-kill": "^1.2.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.64",
