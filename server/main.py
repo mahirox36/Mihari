@@ -35,7 +35,7 @@ from asyncyt import (
     AudioFormat,
     VideoFormat,
 )
-from libs.Models import Downloads, Users, init as _db_init
+from libs.Models import Downloads, Users, init as _db_init, close as _db_close
 from libs.basemodels import GetSettings, SaveSettings
 
 downloader: Downloader = Downloader()
@@ -84,6 +84,7 @@ async def lifespan(app: FastAPI):
     logger.info("http://0.0.0.0:8153/api/docs")
     await _db_init()
     yield
+    await _db_close()
 
 
 app = FastAPI(
@@ -446,9 +447,11 @@ async def get_settings():
 
 app.include_router(api)
 if __name__ == "__main__":
+    from main import app
     uvicorn.run(
-        "main:app",
+        app,
         host="0.0.0.0",
         port=8153,
         workers=1,
+        log_config=None,
     )

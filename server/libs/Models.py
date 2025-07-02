@@ -24,6 +24,9 @@ async def init():
     )
     await Tortoise.generate_schemas()
 
+async def close():
+    await Tortoise.close_connections()
+
 
 class Status(StrEnum):
     QUEUED = auto()
