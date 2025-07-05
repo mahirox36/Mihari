@@ -1,6 +1,8 @@
 from enum import StrEnum, auto
 from pathlib import Path
 from typing import Dict, Optional, Union, Any
+import aiofiles
+import aiohttp
 from tortoise import Tortoise, fields
 from tortoise.models import Model
 from datetime import datetime, timedelta, timezone
@@ -14,6 +16,10 @@ from asyncyt import (
 )
 
 
+thumbnailsPath = Path("./thumbnails/")
+thumbnailsPath.mkdir(exist_ok=True)
+
+
 def utcnow():
     return datetime.now(timezone.utc)
 
@@ -23,6 +29,7 @@ async def init():
         db_url="sqlite://db.sqlite3", modules={"models": ["libs.Models"]}
     )
     await Tortoise.generate_schemas()
+
 
 async def close():
     await Tortoise.close_connections()
@@ -67,6 +74,7 @@ class Downloads(Model):
 
     config: Dict[str, Union[str, int, bool]] = fields.JSONField(default=dict)  # type: ignore
     metadata: Dict[str, Any] = fields.JSONField(default=dict)  # type: ignore
+    thumbnail_path = fields.TextField(null=True)
 
     user_id = fields.IntField(index=True)
 
@@ -139,6 +147,23 @@ class Downloads(Model):
             if response.success and response.filename:
                 file_path = Path(response.filename)
                 await self.set_finished(file_path)
+                if response.video_info:
+                    thumbnail = response.video_info.thumbnail
+                    metadata = response.video_info.model_dump()
+                    metadata.pop("formats")
+                    self.metadata.update(metadata)
+                    filepath = thumbnailsPath / (str(self.id) + ".jpg")
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(thumbnail) as resp:
+                            if resp.status != 200:
+                                await self.save(update_fields=["metadata"])
+                                return
+                            data = await resp.read()
+
+                    async with aiofiles.open(filepath, "wb") as f:
+                        await f.write(data)
+                    self.thumbnail_path = str(filepath)
+                    await self.save(update_fields=["thumbnail_path", "metadata"])
             else:
                 await self.set_failed(response.error or "Unknown error")
 
@@ -244,25 +269,31 @@ class Downloads(Model):
                 "eta",
             ]
         )
-
+    async def delete(self):
+        await super().delete()
+        filepath = thumbnailsPath / (str(self.id) + ".jpg")
+        if filepath.exists():
+            filepath.unlink()
+        
 
 
 class Users(Model):
     id = fields.IntField(pk=True)
-    
-    settings = fields.JSONField(default={
-        "auto_paste": False,
-        "auto_download": True,
-        "download_path": str(Path.home() / "Videos" / "Mihari")
-    })
-    
-    
+
+    settings = fields.JSONField(
+        default={
+            "auto_paste": False,
+            "auto_download": True,
+            "download_path": str(Path.home() / "Videos" / "Mihari"),
+        }
+    )
+
     def get_setting(self, key: str, default: Optional[Any] = None):
         return self.settings.get(key, default)
-    
+
     async def set_setting(self, key: str, value: Any):
         settings = self.settings.copy()
         settings[key] = value
         self.settings = settings
-        await self.save(update_fields=['settings'])
+        await self.save(update_fields=["settings"])
         return self.settings

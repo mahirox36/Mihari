@@ -276,6 +276,12 @@ async def batch_download(
 async def get_history():
     return await Downloads.get_user_downloads(as_model=True)
 
+@api.delete("/history/{id}", tags=["Other"])
+async def delete_history(id: int):
+    item = await Downloads.get_or_none(id=id)
+    if not item:
+        raise HTTPException(404, detail="History Item not found")
+    await item.delete()
 
 @api.websocket("/ws/download")
 async def websocket_download(websocket: WebSocket):
@@ -328,6 +334,8 @@ async def websocket_download(websocket: WebSocket):
     async def process_download(request: DownloadRequest):
         """Process download in background while allowing message handling"""
         nonlocal download_active, last_activity
+        download = await Downloads.create_download(request.url, request.config)
+    
         try:
             last_activity = asyncio.get_event_loop().time()  # Update activity at start
             
@@ -340,11 +348,11 @@ async def websocket_download(websocket: WebSocket):
                     last_activity = asyncio.get_event_loop().time()  # Update on progress
                 except Exception as e:
                     logger.warning(f"Failed to send progress: {e}")
-            
+            await download.start_download()
             result = await downloader.download_with_response(
                 request, ws_progress_callback
             )
-            
+            await download.determine_success(result)
             await websocket.send_json(
                 {"type": "complete", "data": result.model_dump()}
             )
@@ -352,6 +360,7 @@ async def websocket_download(websocket: WebSocket):
             
             
         except Exception as e:
+            await download.set_failed(str(e))
             await websocket.send_json(
                 {"type": "error", "data": {"error": str(e)}}
             )
