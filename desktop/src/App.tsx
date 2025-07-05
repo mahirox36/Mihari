@@ -5,6 +5,7 @@ import { Home } from "./components/Home";
 import { Settings } from "./components/Settings";
 import { api } from "./api";
 import { Toaster } from "react-hot-toast";
+import { Downloads } from "./components/Downloads";
 function App() {
   const [autoPaste, setAutoPaste] = useState(false);
   const [autoDownload, setAutoDownload] = useState(true);
@@ -39,7 +40,7 @@ function App() {
       case "Home":
         return <Home autoPaste={autoPaste} autoDownload={autoDownload} downloadPath={downloadPath} />;
       case "Downloads":
-        return <div>⬇️ Here are your Downloads.</div>;
+        return <Downloads/>;
       case "Settings":
         return <Settings autoPaste={autoPaste} setAutoPaste={setAutoPaste} autoDownload={autoDownload} setAutoDownload={setAutoDownload} downloadPath={downloadPath} setDownloadPath={setDownloadPath} />
       default:

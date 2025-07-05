@@ -2,7 +2,7 @@ import { X, Minus, Maximize } from "lucide-react";
 
 export function Toolbar() {
   return (
-    <div className="relative flex items-center justify-between bg-gray-900 text-white pl-4 h-10 select-none toolbar">
+    <div className="relative flex items-center justify-between bg-gray-900 text-white pl-4 h-10 select-none toolbar z-50">
       <img
         src="./icon.svg"
         alt="App Icon"

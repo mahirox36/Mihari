@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld("api", {
   openFile: (filePath: string) => ipcRenderer.invoke("open-file", filePath),
   getPaste: () => ipcRenderer.invoke("get-clipboard-text"),
   selectOutputPath: () => ipcRenderer.invoke("select-output-path"),
+  selectCookieFile: () => ipcRenderer.invoke("select-cookie-file"),
   onBackendReady: (callback: () => void) => {
     ipcRenderer.on("backend-ready", (_event: IpcRendererEvent) => {
       callback();

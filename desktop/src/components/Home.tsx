@@ -23,6 +23,7 @@ import {
   DownloadProgress,
 } from "../types/asyncyt";
 import toast from "react-hot-toast";
+import { AdvanceSidebar } from "./AdvanceSidebar";
 
 interface HomeProp {
   autoPaste: boolean;
@@ -41,6 +42,20 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState<DownloadProgress | null>(null);
+
+  // Advance Sidebar
+  const [isOpen, setIsOpen] = useState(false);
+  const [writeSubs, setWriteSubs] = useState(false);
+  const [subtitleLang, setSubtitleLang] = useState("en");
+  const [writeThumbnail, setWriteThumbnail] = useState(false);
+  const [writeInfoJson, setWriteInfoJson] = useState(false);
+  const [customFilename, setCustomFilename] = useState("");
+  const [cookiesFile, setCookiesFile] = useState("");
+  const [proxy, setProxy] = useState("");
+  const [rateLimit, setRateLimit] = useState("");
+  const [retries, setRetries] = useState(3);
+  const [fragmentRetries, setFragmentRetries] = useState(3);
+  const [customOptions, setCustomOptions] = useState<string>("");
 
   async function cancel() {
     setDownloading(false);
@@ -102,6 +117,17 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
       extract_audio: onlyAudio,
       embed_subs: embedSubs,
       embed_thumbnail: embedThumbnail,
+      write_subs: writeSubs,
+      subtitle_lang: subtitleLang,
+      write_thumbnail: writeThumbnail,
+      write_info_json: writeInfoJson,
+      custom_filename: customFilename,
+      cookies_file: cookiesFile,
+      proxy,
+      rate_limit: rateLimit,
+      retries,
+      fragment_retries: fragmentRetries,
+      custom_options: customOptions ? JSON.parse(customOptions) : {},
     };
     const requestData: DownloadRequest = {
       url: finalUrl,
@@ -114,6 +140,16 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
 
       ws.onopen = () => {
         ws.send(JSON.stringify(requestData));
+        setProgress({
+          url,
+          title: "...",
+          status: "Waiting",
+          downloaded_bytes: 0,
+          total_bytes: 0,
+          speed: 0,
+          eta: 0,
+          percentage: 0,
+        });
       };
 
       ws.onclose = () => {
@@ -173,8 +209,11 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
         <div className="text-xl font-medium select-none">
           {onlyAudio ? "Download Audio" : "Download Video"}
         </div>
-        <button className="text-lg text-indigo-500 hover:text-indigo-600 flex items-center gap-2 cursor-pointer select-none transition-colors">
-          <Settings2 /> Advance Settings
+        <button
+          className="text-lg text-indigo-500 hover:text-indigo-600 flex items-center gap-2 cursor-pointer select-none transition-colors"
+          onClick={() => setIsOpen(true)}
+        >
+          <Settings2 /> Advance Options
         </button>
       </div>
 
@@ -362,6 +401,32 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
           </div>
         </div>
       )}
+      <AdvanceSidebar
+        isOpen={isOpen}
+        setIsOpen={setIsOpen}
+        writeSubs={writeSubs}
+        setWriteSubs={setWriteSubs}
+        subtitleLang={subtitleLang}
+        setSubtitleLang={setSubtitleLang}
+        writeThumbnail={writeThumbnail}
+        setWriteThumbnail={setWriteThumbnail}
+        writeInfoJson={writeInfoJson}
+        setWriteInfoJson={setWriteInfoJson}
+        customFilename={customFilename}
+        setCustomFilename={setCustomFilename}
+        cookiesFile={cookiesFile}
+        setCookiesFile={setCookiesFile}
+        proxy={proxy}
+        setProxy={setProxy}
+        rateLimit={rateLimit}
+        setRateLimit={setRateLimit}
+        retries={retries}
+        setRetries={setRetries}
+        fragmentRetries={fragmentRetries}
+        setFragmentRetries={setFragmentRetries}
+        customOptions={customOptions}
+        setCustomOptions={setCustomOptions}
+      />
     </div>
   );
 }

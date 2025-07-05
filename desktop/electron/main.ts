@@ -485,6 +485,40 @@ ipcMain.handle("select-output-path", async () => {
   }
 });
 
+ipcMain.handle("select-cookie-file", async () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (!win) {
+    return { success: false, error: "No active window found." };
+  }
+
+  try {
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      properties: ["openFile"],
+      title: "Select Cookie File",
+      buttonLabel: "Select File",
+      filters: [
+        { name: "Cookies", extensions: ["txt", "json", "cookie", "cookies"] },
+        { name: "All Files", extensions: ["*"] },
+      ],
+      defaultPath: app.getPath("downloads"),
+    });
+
+    if (canceled) {
+      return { success: false, cancelled: true };
+    }
+
+    const selectedFile = filePaths[0];
+    if (!selectedFile) {
+      return { success: false, error: "No file selected." };
+    }
+
+    return { success: true, path: selectedFile };
+  } catch (error: any) {
+    console.error("Cookie file selection failed:", error);
+    return { success: false, error: error?.message || "Unknown error." };
+  }
+});
+
 ipcMain.handle("get-clipboard-text", async () => {
   try {
     const text = clipboard.readText();

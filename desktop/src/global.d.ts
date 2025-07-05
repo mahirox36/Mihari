@@ -12,6 +12,12 @@ declare global {
         error?: string;
         path?: string;
       };
+      selectCookieFile: () => {
+        success: boolean;
+        cancelled?: boolean;
+        error?: string;
+        path?: string;
+      };
       showInFolder: (filePath: string) => void;
       openFile: (filePath: string) => {
         success: boolean;
