@@ -13,40 +13,26 @@ function App() {
   const [activePage, setActivePage] = useState("Home");
 
   type settingsFetch = {
-      status: boolean;
-      value: {
-        auto_paste: boolean;
-        auto_download: boolean;
-        download_path: string;
-      };
-      error?: string;
+    status: boolean;
+    value: {
+      auto_paste: boolean;
+      auto_download: boolean;
+      download_path: string;
     };
-  
-    useEffect(() => {
-      async function fetchData() {
-        try {
-          const response = await api.get<settingsFetch>("/settings");
-          setAutoPaste(response.data.value.auto_paste);
-          setAutoDownload(response.data.value.auto_download);
-          setDownloadPath(response.data.value.download_path || "");
-        } catch (err: any) {
-        }
-      }
-      fetchData();
-    }, []);
+    error?: string;
+  };
 
-  function renderContent() {
-    switch (activePage) {
-      case "Home":
-        return <Home autoPaste={autoPaste} autoDownload={autoDownload} downloadPath={downloadPath} />;
-      case "Downloads":
-        return <Downloads/>;
-      case "Settings":
-        return <Settings autoPaste={autoPaste} setAutoPaste={setAutoPaste} autoDownload={autoDownload} setAutoDownload={setAutoDownload} downloadPath={downloadPath} setDownloadPath={setDownloadPath} />
-      default:
-        return <div>Page not found.</div>;
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await api.get<settingsFetch>("/settings");
+        setAutoPaste(response.data.value.auto_paste);
+        setAutoDownload(response.data.value.auto_download);
+        setDownloadPath(response.data.value.download_path || "");
+      } catch (err: any) {}
     }
-  }
+    fetchData();
+  }, []);
 
   return (
     <div className="flex h-screen flex-col">
@@ -55,7 +41,32 @@ function App() {
         <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
         <Sidebar activePage={activePage} setActivePage={setActivePage} />
         <div className="flex-1 bg-gradient-to-tr from-cyan-100 via-blue-200 to-indigo-200 dark:from-cyan-950 dark:via-blue-950 dark:to-indigo-950 text-gray-900 dark:text-cyan-50 p-4">
-          {renderContent()}
+          <>
+            <div style={{ display: activePage === "Home" ? "block" : "none" }}>
+              <Home
+                autoPaste={autoPaste}
+                autoDownload={autoDownload}
+                downloadPath={downloadPath}
+              />
+            </div>
+            <div
+              style={{ display: activePage === "Downloads" ? "block" : "none" }}
+            >
+              <Downloads isActive={activePage === "Downloads"} />
+            </div>
+            <div
+              style={{ display: activePage === "Settings" ? "block" : "none" }}
+            >
+              <Settings
+                autoPaste={autoPaste}
+                setAutoPaste={setAutoPaste}
+                autoDownload={autoDownload}
+                setAutoDownload={setAutoDownload}
+                downloadPath={downloadPath}
+                setDownloadPath={setDownloadPath}
+              />
+            </div>
+          </>
         </div>
       </div>
     </div>

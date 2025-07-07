@@ -9,6 +9,24 @@ export type DownloadProgress = {
   percentage: number;
 };
 
+export type StartupResponse = {
+  type: "error" | "complete" | "progress" | "ping";
+  data?: SetupProgress; // only in progress
+  error?: string
+};
+
+export type DownloadFileProgress = {
+  status: "downloading" | "extracting";
+  downloaded_bytes: number;
+  total_bytes: number;
+  percentage: number;
+};
+
+export type SetupProgress = {
+  file: "yt-dlp" | "ffmpeg";
+  download_file_progress: DownloadFileProgress;
+};
+
 export type VideoInfo = {
   url: string;
   title: string;
@@ -50,7 +68,7 @@ export type HealthResponse = {
 };
 
 export type DownloadConfig = {
-  output_path?: string;
+  output_path: string;
   quality?: string;
   audio_format?: string;
   video_format?: string;
@@ -109,3 +127,13 @@ export type Message =
   | MessageComplete
   | MessageError
   | MessagePing;
+
+
+export type HealthStatus = {
+  status: string;
+  yt_dlp_available: boolean;
+  ffmpeg_available: boolean;
+  version: string;
+  binaries_path?: string;
+  error?: string;
+};

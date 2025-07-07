@@ -102,12 +102,12 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
     const validateResult = validateUrl(result.text);
     if (validateResult && validateResult.url) {
       const realUrl = validateResult.url;
-      setUrl(realUrl);
       if (autoDownload) await download(realUrl);
     }
   }
 
   async function download(customUrl?: string) {
+    setUrl("");
     const finalUrl = customUrl || url;
     const config: DownloadConfig = {
       output_path: downloadPath,
@@ -194,6 +194,16 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
     if (socket && !downloading) {
       setDownloading(true);
       socket.send(JSON.stringify(requestData));
+      setProgress({
+          url,
+          title: "...",
+          status: "Waiting",
+          downloaded_bytes: 0,
+          total_bytes: 0,
+          speed: 0,
+          eta: 0,
+          percentage: 0,
+        });
     }
   }
 

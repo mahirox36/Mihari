@@ -155,6 +155,8 @@ export function Settings({autoPaste, setAutoPaste, autoDownload, setAutoDownload
         
         <PathSelector />
       </div>
+      <a href=""><div className="bg-amber-300 p-10 h-44"></div></a>
+      
     </div>
   );
 }
