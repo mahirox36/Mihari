@@ -162,7 +162,7 @@ class Downloads(Model):
 
                     async with aiofiles.open(filepath, "wb") as f:
                         await f.write(data)
-                    self.thumbnail_path = str(filepath)
+                    self.thumbnail_path = str(filepath.resolve())
                     await self.save(update_fields=["thumbnail_path", "metadata"])
             else:
                 await self.set_failed(response.error or "Unknown error")
@@ -238,20 +238,21 @@ class Downloads(Model):
         """Check if download is active"""
         return self.status in [Status.QUEUED, Status.DOWNLOADING, Status.PAUSED]
 
-    def to_dict(self) -> Dict[str, Union[int, str, Dict[str, Any]]]:
+    def to_dict(self) -> Dict[str, Union[int, str, Dict[str, Any], None]]:
         return {
             "id": self.id,
             "user_id": self.user_id,
             "url": self.url,
             "filename": self.filename,
-            "date_created": self.date_created.isoformat(),
-            "date_started": self.date_started.isoformat(),
-            "date_finished": self.date_finished.isoformat(),
+            "date_created": self.date_created.isoformat() if self.date_created  else None,
+            "date_started": self.date_started.isoformat() if self.date_started  else None,
+            "date_finished": self.date_finished.isoformat() if self.date_finished  else None,
             "status": self.status,
             "priority": self.priority,
             "error": self.error,
             "config": self.config,
-            "metadata": self.metadata,
+            "thumbnail_path": self.thumbnail_path if self.thumbnail_path else None,
+            "metadata": self.metadata if self.metadata else None,
         }
 
     async def update_progress(self, progress: DownloadProgress):
