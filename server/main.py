@@ -410,6 +410,7 @@ async def websocket_download(websocket: WebSocket):
             except Exception as e:
                 logger.warning(f"Idle timeout handler error: {e}")
                 break
+
     heartbeat_task = asyncio.create_task(send_heartbeat())
     message_task = asyncio.create_task(handle_messages())
     timeout_task = asyncio.create_task(handle_idle_timeout())
@@ -444,9 +445,7 @@ async def websocket_download(websocket: WebSocket):
             pass
 
 
-api.websocket("/ws/startup")
-
-
+@api.websocket("/ws/startup")
 async def websocket_startup(websocket: WebSocket):
     """WebSocket endpoint for real-time startup progress"""
     await websocket.accept()
@@ -465,20 +464,24 @@ async def websocket_startup(websocket: WebSocket):
         try:
 
             async for progress in downloader.setup_binaries_generator():
-                await websocket.send_json(progress.model_dump())
+
+                await websocket.send_json(
+                    {"type": "progress", "data": progress.model_dump()}
+                )
+            await websocket.send_json({"type": "complete"})
 
         except Exception as e:
-            await websocket.send_json({"type": "error", "data": {"error": str(e)}})
+            await websocket.send_json({"type": "error", "error": str(e)})
         finally:
             await websocket.close()
 
     # Start concurrent tasks
     heartbeat_task = asyncio.create_task(send_heartbeat())
-    download_task = asyncio.create_task(process_startup())
+    startup_task = asyncio.create_task(process_startup())
 
     try:
         done, pending = await asyncio.wait(
-            [heartbeat_task, download_task],
+            [heartbeat_task, startup_task],
             return_when=asyncio.FIRST_COMPLETED,
         )
 
@@ -494,7 +497,7 @@ async def websocket_startup(websocket: WebSocket):
         logger.warning(f"WebSocket error: {e}")
     finally:
         # Cleanup
-        for task in [heartbeat_task, download_task]:
+        for task in [heartbeat_task, startup_task]:
             if not task.done():
                 task.cancel()
                 try:
