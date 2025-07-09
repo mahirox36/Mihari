@@ -381,7 +381,14 @@ async def websocket_download(websocket: WebSocket):
                 request, ws_progress_callback
             )
             await download.determine_success(result)
-            await websocket.send_json({"type": "complete", "data": result.model_dump()})
+            if result.success:
+                await websocket.send_json(
+                    {"type": "complete", "data": result.model_dump()}
+                )
+            else:
+                await websocket.send_json(
+                    {"type": "error", "data": result.model_dump()}
+                )
             last_activity = asyncio.get_event_loop().time()  # Update on completion
 
         except Exception as e:
@@ -445,10 +452,20 @@ async def websocket_download(websocket: WebSocket):
             pass
 
 
+started_startup = False
+
+
 @api.websocket("/ws/startup")
 async def websocket_startup(websocket: WebSocket):
     """WebSocket endpoint for real-time startup progress"""
+    global started_startup
+    if started_startup:
+        await websocket.close(
+            code=1008, reason="Cannot accept: WebSocket connection is already accepted"
+        )
+        return
     await websocket.accept()
+    started_startup = True
 
     async def send_heartbeat():
         while True:
@@ -507,6 +524,7 @@ async def websocket_startup(websocket: WebSocket):
 
         try:
             await websocket.close()
+            started_startup = False
         except Exception:
             pass
 
