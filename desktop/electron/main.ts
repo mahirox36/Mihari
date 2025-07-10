@@ -41,7 +41,6 @@ class PythonProcessManager {
   private process: ChildProcess | null = null;
   private isReady = false;
   private startupTimeout: NodeJS.Timeout | null = null;
-  private readonly STARTUP_TIMEOUT_MS = 30000; // 30 seconds
 
   async start(exePath: string): Promise<boolean> {
     if (this.process) {
@@ -72,12 +71,6 @@ class PythonProcessManager {
 
       // Set up process event handlers immediately
       this.setupProcessHandlers();
-
-      // Set startup timeout
-      this.startupTimeout = setTimeout(() => {
-        console.error("Python process startup timeout");
-        this.kill();
-      }, this.STARTUP_TIMEOUT_MS);
 
       return true;
     } catch (error) {
@@ -263,7 +256,7 @@ function createWindow() {
       preload: path.join(__dirname, "preload.mjs"),
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: true,
+      webSecurity: false,
       allowRunningInsecureContent: false,
     },
   });
@@ -312,8 +305,8 @@ function createWindow() {
 
       if (
         // (combo === "r" && (input.control || input.meta)) ||
-        combo === "f5" ||
-        (combo === "i" && input.control && input.shift) || // Ctrl+Shift+I
+        // combo === "f5" ||
+        // (combo === "i" && input.control && input.shift) || // Ctrl+Shift+I
         combo === "f12"
       ) {
         event.preventDefault();
@@ -417,10 +410,13 @@ ipcMain.on("window-close", () => {
   if (win) win.close();
 });
 
-ipcMain.on("show-in-folder", (_event, filePath: string) => {
+ipcMain.handle("show-in-folder", async (_event, filePath: string) => {
   try {
+    if (!fsSync.existsSync(filePath)) {
+      return { success: false, error: "The specified file could not be found" };
+    }
     shell.showItemInFolder(filePath);
-    return { success: true, filePath };
+    return { success: true };
   } catch (error: any) {
     console.error("Failed to show in folder:", error);
     return { success: false, error: error.message };
@@ -429,6 +425,9 @@ ipcMain.on("show-in-folder", (_event, filePath: string) => {
 
 ipcMain.handle("open-file", async (_event, filePath: string) => {
   try {
+    if (!fsSync.existsSync(filePath)) {
+      return { success: false, error: "The specified file could not be found" };
+    }
     const result = await shell.openPath(filePath);
     if (result) {
       throw new Error(`Failed to open file: ${result}`);

@@ -18,7 +18,11 @@ declare global {
         error?: string;
         path?: string;
       };
-      showInFolder: (filePath: string) => void;
+      showInFolder: (filePath: string) => {
+        success: boolean;
+        filePath?: string;
+        error?: any;
+      };
       openFile: (filePath: string) => {
         success: boolean;
         error?: any;

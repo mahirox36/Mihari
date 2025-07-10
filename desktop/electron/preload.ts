@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld("api", {
   minimize: () => ipcRenderer.send("window-minimize"),
   maximize: () => ipcRenderer.send("window-maximize"),
   close: () => ipcRenderer.send("window-close"),
-  showInFolder: (filePath: string) => ipcRenderer.send("show-in-folder", filePath),
+  showInFolder: (filePath: string) => ipcRenderer.invoke("show-in-folder", filePath),
   openFile: (filePath: string) => ipcRenderer.invoke("open-file", filePath),
   getPaste: () => ipcRenderer.invoke("get-clipboard-text"),
   selectOutputPath: () => ipcRenderer.invoke("select-output-path"),

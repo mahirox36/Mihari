@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+
+@custom-variant dark (&:where(.dark, .dark *));
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -29,17 +31,17 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #1e293b; /* Tailwind slate-800 */
-  border-radius: 9999px;
+  background: oklch(21% 0.034 264.665); /* Tailwind slate-800 */
+  border-radius: 0px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, oklch(86.5% 0.127 207.078), oklch(58.5% 0.233 277.117)); /* pink to purple */
+  background: linear-gradient(to bottom, oklch(86.5% 0.127 207.078), oklch(58.5% 0.233 277.117));
   border-radius: 9999px;
-  border: 2px solid #1e293b;
+  border: 2px solid oklch(21% 0.034 264.665);
   transition: background 0.3s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, oklch(91.7% 0.08 205.041), oklch(87% 0.065 274.039)); /* lighter pink/purple */
+  background: linear-gradient(to bottom, oklch(91.7% 0.08 205.041), oklch(87% 0.065 274.039));
 }
