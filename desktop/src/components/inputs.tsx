@@ -31,7 +31,7 @@ export function Switch({
         </div>
         <button
           onClick={() => setProperty(!property)}
-          className={`relative w-14 h-7 rounded-full transition-all duration-300 ease-out cursor-pointer transform hover:scale-105 active:scale-95 ${
+          className={`relative w-14 h-7 rounded-full transition-all duration-300 ease-out cursor-pointer transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300 ${
             property
               ? "bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 shadow-lg shadow-cyan-500/40"
               : "bg-white/20 hover:bg-white/30"

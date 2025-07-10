@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Clipboard, Download, Folder, LucideProps } from "lucide-react";
 import { api } from "../api";
+import { Dropdown } from "./Keys";
 
 interface SettingsProp {
   autoPaste: boolean;
@@ -9,10 +10,23 @@ interface SettingsProp {
   setAutoDownload: React.Dispatch<React.SetStateAction<boolean>>;
   downloadPath: string;
   setDownloadPath: React.Dispatch<React.SetStateAction<string>>;
+  theme: any;
+  setTheme: React.Dispatch<any>;
 }
 
-export function Settings({autoPaste, setAutoPaste, autoDownload, setAutoDownload, downloadPath, setDownloadPath}: SettingsProp) {
+export function Settings({
+  autoPaste,
+  setAutoPaste,
+  autoDownload,
+  setAutoDownload,
+  downloadPath,
+  setDownloadPath,
+  theme,
+  setTheme
+
+}: SettingsProp) {
   const [error, setError] = useState(null);
+  
 
   type saveSettings = {
     key: string;
@@ -31,7 +45,6 @@ export function Settings({autoPaste, setAutoPaste, autoDownload, setAutoDownload
     };
     await api.post("/setting", SaveSettings);
   }
-
 
   async function selectOutputPath() {
     try {
@@ -81,6 +94,7 @@ export function Settings({autoPaste, setAutoPaste, autoDownload, setAutoDownload
           onClick={() => saveAndSet(name, property, setProperty)}
           className={`
             relative w-12 h-6 ml-6 rounded-full transition-all duration-300 ease-in-out cursor-pointer
+            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300
             ${
               property
                 ? "bg-gradient-to-r from-cyan-400 to-blue-500 shadow-lg shadow-blue-500/30"
@@ -117,7 +131,8 @@ export function Settings({autoPaste, setAutoPaste, autoDownload, setAutoDownload
           </div>
           <button
             onClick={selectOutputPath}
-            className="px-3 py-2 text-xs bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-md hover:from-cyan-500 hover:to-blue-600 transition-all duration-200 shadow-sm hover:shadow-md"
+            className="px-3 py-2 text-xs bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-md hover:from-cyan-500 hover:to-blue-600 transition-all duration-200 shadow-sm hover:shadow-md
+            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300"
           >
             Browse
           </button>
@@ -135,8 +150,17 @@ export function Settings({autoPaste, setAutoPaste, autoDownload, setAutoDownload
           Settings
         </h1>
       </div>
-      
+
       <div className="space-y-8">
+        <Dropdown
+          placeholder={theme}
+          items={[
+            { label: "System", value: "system" },
+            { label: "Light Mode", value: "light" },
+            { label: "Dark Mode", value: "dark" },
+          ]}
+          onSelect={(value) => setTheme(value)}
+        />
         <Switch
           name="Auto Paste"
           description="Auto paste the link you have copied into the URL box when the app starts"
@@ -144,7 +168,6 @@ export function Settings({autoPaste, setAutoPaste, autoDownload, setAutoDownload
           setProperty={setAutoPaste}
           Icon={Clipboard}
         />
-        
         <Switch
           name="Auto Download"
           description="When pasted via the button it auto downloads"
@@ -152,11 +175,8 @@ export function Settings({autoPaste, setAutoPaste, autoDownload, setAutoDownload
           setProperty={setAutoDownload}
           Icon={Download}
         />
-        
         <PathSelector />
       </div>
-      <a href=""><div className="bg-amber-300 p-10 h-44"></div></a>
-      
     </div>
   );
 }

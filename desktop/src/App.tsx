@@ -6,7 +6,13 @@ import { Settings } from "./components/Settings";
 import { api } from "./api";
 import { Toaster } from "react-hot-toast";
 import { Downloads } from "./components/Downloads";
-function App() {
+
+interface AppProp {
+  theme: any;
+  setTheme: React.Dispatch<any>;
+}
+
+function App({ theme, setTheme }: AppProp) {
   const [autoPaste, setAutoPaste] = useState(false);
   const [autoDownload, setAutoDownload] = useState(true);
   const [downloadPath, setDownloadPath] = useState("");
@@ -40,7 +46,10 @@ function App() {
       <div className="flex h-screen">
         <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
         <Sidebar activePage={activePage} setActivePage={setActivePage} />
-        <div className="flex-1 bg-gradient-to-tr from-cyan-100 via-blue-200 to-indigo-200 dark:from-cyan-950 dark:via-blue-950 dark:to-indigo-950 text-gray-900 dark:text-cyan-50 p-4">
+        <div
+          className="flex-1 bg-gradient-to-tr from-cyan-100 via-blue-200 to-indigo-200 dark:from-cyan-950 dark:via-blue-950 dark:to-indigo-950 text-gray-900 dark:text-cyan-50 p-4 
+        overflow-y-auto max-h-[calc(100vh-40px)] custom-scrollbar"
+        >
           <>
             <div style={{ display: activePage === "Home" ? "block" : "none" }}>
               <Home
@@ -64,6 +73,8 @@ function App() {
                 setAutoDownload={setAutoDownload}
                 downloadPath={downloadPath}
                 setDownloadPath={setDownloadPath}
+                theme={theme}
+                setTheme={setTheme}
               />
             </div>
           </>

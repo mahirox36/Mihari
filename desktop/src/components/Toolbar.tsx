@@ -1,6 +1,7 @@
 import { X, Minus, Maximize } from "lucide-react";
 
 export function Toolbar() {
+  const BaseButton = "size-10 flex items-center justify-center transition-all duration-150 ease-in-ou focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300"
   return (
     <div className="relative flex items-center justify-between bg-gray-900 text-white pl-4 h-10 select-none toolbar z-50">
       <img
@@ -14,21 +15,21 @@ export function Toolbar() {
       </span>
       <div className="flex space-x-2">
         <button
-          className="size-10 flex items-center justify-center hover:bg-gray-700 transition-all duration-150 ease-in-out"
+          className={`${BaseButton} hover:bg-gray-700`}
           onClick={() => window.api.minimize()}
           style={{ WebkitAppRegion: "no-drag" } as any}
         >
           <Minus />
         </button>
         <button
-          className="size-10 flex items-center justify-center hover:bg-gray-700 transition-all duration-150 ease-in-out"
+          className={`${BaseButton} hover:bg-gray-700`}
           onClick={() => window.api.maximize()}
           style={{ WebkitAppRegion: "no-drag" } as any}
         >
           <Maximize />
         </button>
         <button
-          className="size-10 flex items-center justify-center hover:bg-red-600 transition-all duration-150 ease-in-out"
+          className={`${BaseButton} hover:bg-red-600`}
           onClick={() => window.api.close()}
           style={{ WebkitAppRegion: "no-drag" } as any}
         >

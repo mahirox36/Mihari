@@ -1,25 +1,27 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import {
+  HealthStatus,
+  SetupProgress,
+  StartupResponse,
+} from "./types/asyncyt.ts";
+import { api } from "./api.ts";
+import { Toolbar } from "./components/Toolbar.tsx";
 
-const isDev = import.meta.env.DEV;
+const isDev = !import.meta.env.DEV;
 
-interface BackendStatus {
-  ready: boolean;
+type AppState = {
+  loading: boolean;
   error: string | null;
-  retryCount: number;
-  lastCheck: number;
-}
+  setupProgress: SetupProgress | null;
+  message: string;
+};
 
-interface LoadingProps {
-  status: BackendStatus;
-}
-
-function Loading({ status }: LoadingProps) {
+function LoadingScreen({ state }: { state: AppState }) {
   const [dots, setDots] = useState("");
 
-  // Animate loading dots
   useEffect(() => {
     const interval = setInterval(() => {
       setDots((prev) => (prev.length >= 3 ? "" : prev + "."));
@@ -27,60 +29,69 @@ function Loading({ status }: LoadingProps) {
     return () => clearInterval(interval);
   }, []);
 
-  const getStatusMessage = () => {
-    if (status.error) {
-      return "Backend connection failed";
-    }
-    if (status.retryCount > 0) {
-      return `Reconnecting (attempt ${status.retryCount})`;
-    }
-    return "Starting backend";
-  };
-
-  const getStatusIcon = () => {
-    if (status.error) return "⚠️";
-    if (status.retryCount > 0) return "🔄";
+  const getIcon = () => {
+    if (state.error) return "⚠️";
+    if (state.setupProgress) return "📦";
     return "🌀";
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-tr from-cyan-100 via-blue-200 to-indigo-200 dark:from-cyan-950 dark:via-blue-950 dark:to-indigo-950">
-      <div className="text-center p-8 max-w-md mx-4">
-        {/* Loading Card */}
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20 dark:border-gray-700/30">
-          {/* Icon */}
-          <div className={`text-6xl mb-4 ${getStatusIcon() === "⚠️" ? "animate-pulse" : "animate-spin"}`}>{getStatusIcon()}</div>
+    <div className="flex h-screen flex-col">
+      <Toolbar />
+      <div className="h-screen flex items-center justify-center bg-gradient-to-tr from-cyan-100 via-blue-200 to-indigo-200 dark:from-cyan-950 dark:via-blue-950 dark:to-indigo-950">
+        <div className="text-center p-8 max-w-md mx-4">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20 dark:border-gray-700/30">
+            <div className="text-6xl mb-4 animate-pulse">{getIcon()}</div>
 
-          {/* Title */}
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-cyan-50 mb-2">
-            Mihari Video Downloader
-          </h1>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-cyan-50 mb-2">
+              Mihari Video Downloader
+            </h1>
 
-          {/* Status */}
-          <p className="text-lg text-gray-600 dark:text-cyan-100 mb-4">
-            {getStatusMessage()}
-            {dots}
-          </p>
+            <p className="text-lg text-gray-600 dark:text-cyan-100 mb-4">
+              {state.message}
+              {dots}
+            </p>
 
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-6 overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 rounded-full animate-pulse"></div>
+            {state.setupProgress && (
+              <div className="mb-4">
+                <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                  {state.setupProgress.file === "yt-dlp"
+                    ? "Installing yt-dlp"
+                    : "Installing FFmpeg"}
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${Math.round(
+                        state.setupProgress.download_file_progress.percentage
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {state.setupProgress.download_file_progress.status} -{" "}
+                  {state.setupProgress.download_file_progress.percentage.toFixed(
+                    1
+                  )}
+                  %
+                </div>
+              </div>
+            )}
+
+            {state.error && (
+              <div className="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4 text-sm">
+                <p className="font-medium mb-1">Error</p>
+                <p>{state.error}</p>
+              </div>
+            )}
+
+            {!state.setupProgress && (
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-6">
+                <div className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 rounded-full animate-pulse" />
+              </div>
+            )}
           </div>
-
-          {/* Error Message */}
-          {status.error && (
-            <div className="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4 text-sm">
-              <p className="font-medium mb-1">Connection Error</p>
-              <p className="opacity-90">{status.error}</p>
-            </div>
-          )}
-
-          {/* Help Text */}
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-            {status.retryCount > 0
-              ? "Checking if backend is ready..."
-              : "Backend may still be starting up from previous session"}
-          </p>
         </div>
       </div>
     </div>
@@ -88,191 +99,175 @@ function Loading({ status }: LoadingProps) {
 }
 
 function Root() {
-  const [backendStatus, setBackendStatus] = useState<BackendStatus>({
-    ready: isDev,
+  const [state, setState] = useState<AppState>({
+    loading: !isDev, // Skip loading in dev mode
     error: null,
-    retryCount: 0,
-    lastCheck: Date.now(),
+    setupProgress: null,
+    message: "Checking backend status",
+  });
+  const [theme, setTheme] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.theme || "system";
+    }
+    return "system";
   });
 
-  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isCheckingRef = useRef(false);
+  useEffect(() => {
+    const root = document.documentElement;
 
-  // Check backend status
-  const checkBackendStatus = useCallback(async () => {
-    if (isDev || isCheckingRef.current) return;
+    if (theme === "dark") {
+      root.classList.add("dark");
+      localStorage.theme = "dark";
+    } else if (theme === "light") {
+      root.classList.remove("dark");
+      localStorage.theme = "light";
+    } else {
+      // System preference
+      localStorage.removeItem("theme");
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      ).matches;
+      root.classList.toggle("dark", prefersDark);
+    }
+  }, [theme]);
 
-    isCheckingRef.current = true;
+  // Optional: Listen for system preference changes
+  useEffect(() => {
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = (e: any) => {
+        document.documentElement.classList.toggle("dark", e.matches);
+      };
 
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+  }, [theme]);
+
+  const checkHealth = async (): Promise<HealthStatus | null> => {
     try {
-      const status = await window.api.invoke("python-process-status");
-      const now = Date.now();
+      const response = await api.get<HealthStatus>("/health");
+      return response.data;
+    } catch (error) {
+      console.error("Health check failed:", error);
+      return null;
+    }
+  };
 
-      setBackendStatus((prev) => ({
+  const startSetup = async () => {
+    try {
+      setState((prev) => ({
         ...prev,
-        ready: status.ready,
-        error: status.running
-          ? status.ready
-            ? null
-            : prev.error
-          : "Backend process not running",
-        lastCheck: now,
+        message: "Installing missing libraries",
       }));
 
-      if (status.ready) {
-        // Backend is ready, stop checking
-        if (checkIntervalRef.current) {
-          clearInterval(checkIntervalRef.current);
-          checkIntervalRef.current = null;
+      const ws = new WebSocket("ws://localhost:8153/api/v1/ws/startup");
+
+      ws.onmessage = (event) => {
+        const response: StartupResponse = JSON.parse(event.data);
+
+        if (response.type === "progress" && response.data) {
+          setState((prev) => ({
+            ...prev,
+            setupProgress: response.data!,
+            message: "Installing dependencies",
+          }));
+        } else if (response.type === "complete") {
+          setState((prev) => ({
+            ...prev,
+            setupProgress: null,
+            message: "Setup complete, checking health",
+          }));
+          ws.close();
+          // Recheck health after setup
+          setTimeout(initializeApp, 1000);
+        } else if (response.type === "error") {
+          setState((prev) => ({
+            ...prev,
+            error: response.error || "Setup failed",
+            loading: false,
+          }));
+          ws.close();
+        } else if (response.type === "ping") {
+          ws.send("pong");
         }
-      }
+      };
+
+      ws.onerror = () => {
+        setState((prev) => ({
+          ...prev,
+          error: "WebSocket connection failed",
+          loading: false,
+        }));
+      };
     } catch (error) {
-      console.error("Failed to check backend status:", error);
-      setBackendStatus((prev) => ({
+      setState((prev) => ({
         ...prev,
-        error: `Connection failed: ${
+        error: `Setup failed: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-        lastCheck: Date.now(),
+        loading: false,
       }));
-    } finally {
-      isCheckingRef.current = false;
     }
-  }, []);
+  };
 
-  // Start periodic status checking (without restarting)
-  const startStatusChecking = useCallback(() => {
-    if (isDev || checkIntervalRef.current) return;
+  const initializeApp = async () => {
+    const health = await checkHealth();
 
-    console.log("Starting backend status monitoring...");
-
-    // Initial check
-    checkBackendStatus();
-
-    // Set up periodic checking
-    checkIntervalRef.current = setInterval(checkBackendStatus, 2000);
-
-    // Set timeout for maximum wait time
-    timeoutRef.current = setTimeout(() => {
-      if (!backendStatus.ready) {
-        setBackendStatus((prev) => ({
-          ...prev,
-          error:
-            "Backend is taking longer than expected - it may still be starting up",
-        }));
-      }
-    }, 30000); // 30 second timeout
-  }, [checkBackendStatus, backendStatus.ready]);
-
-  // Handle backend ready event
-  useEffect(() => {
-    if (isDev) return;
-
-    const handleBackendReady = () => {
-      console.log("Backend ready event received");
-      setBackendStatus((prev) => ({
+    if (!health) {
+      setState((prev) => ({
         ...prev,
-        ready: true,
+        error:
+          "Cannot connect to backend. Make sure the server is running on localhost:8153",
+        loading: false,
+      }));
+      return;
+    }
+
+    if (health.error) {
+      setState((prev) => ({
+        ...prev,
+        error: health.error!,
+        loading: false,
+      }));
+      return;
+    }
+
+    // Check if libraries are available
+    if (!health.yt_dlp_available || !health.ffmpeg_available) {
+      await startSetup();
+    } else {
+      // Everything is ready
+      setState((prev) => ({
+        ...prev,
+        loading: false,
         error: null,
       }));
+    }
+  };
 
-      // Clear checking interval
-      if (checkIntervalRef.current) {
-        clearInterval(checkIntervalRef.current);
-        checkIntervalRef.current = null;
-      }
-
-      // Clear timeout
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-
-    const handleBackendError = (data: any) => {
-      console.error("Backend error:", data);
-      setBackendStatus((prev) => ({
-        ...prev,
-        ready: false,
-        error: data.error || "Backend error occurred",
-      }));
-    };
-
-    const handleBackendCrash = (data: any) => {
-      console.error("Backend crashed:", data);
-      setBackendStatus((prev) => ({
-        ...prev,
-        ready: false,
-        error: `Backend crashed (code: ${data.code})`,
-      }));
-    };
-
-    // Set up event listeners
-    window.api.onBackendReady(handleBackendReady);
-    window.api.on?.("python-process-error", handleBackendError);
-    window.api.on?.("python-process-crashed", handleBackendCrash);
-
-    // Start checking immediately
-    startStatusChecking();
-
-    // Cleanup
-    return () => {
-      if (checkIntervalRef.current) {
-        clearInterval(checkIntervalRef.current);
-        checkIntervalRef.current = null;
-      }
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-
-      // Remove event listeners if API supports it
-      if (window.api.removeListener) {
-        window.api.removeListener("backend-ready", handleBackendReady);
-        window.api.removeListener("python-process-error", handleBackendError);
-        window.api.removeListener("python-process-crashed", handleBackendCrash);
-      }
-    };
-  }, [startStatusChecking]);
-
-  // Handle visibility change (page focus/blur)
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && !isDev && !backendStatus.ready) {
-        // Page became visible and backend isn't ready - check status
-        console.log("Page became visible, checking backend status...");
-        checkBackendStatus();
-      }
-    };
+    // Skip initialization in development mode
+    if (isDev) {
+      console.log("Development mode: skipping backend initialization");
+      return;
+    }
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [checkBackendStatus, backendStatus.ready]);
+    initializeApp();
+  }, []);
 
-  // Handle online/offline events
-  useEffect(() => {
-    const handleOnline = () => {
-      if (!isDev && !backendStatus.ready) {
-        console.log("Connection restored, checking backend...");
-        checkBackendStatus();
-      }
-    };
-
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
-  }, [checkBackendStatus, backendStatus.ready]);
-
-  // Show loading screen if backend isn't ready
-  if (!backendStatus.ready) {
-    return <Loading status={backendStatus} />;
+  if (state.loading) {
+    return <LoadingScreen state={state} />;
   }
 
-  return <App />;
+  if (state.error) {
+    return <LoadingScreen state={state} />;
+  }
+
+  return <App theme={theme} setTheme={setTheme} />;
 }
 
-// Error Boundary Component
+// Simple Error Boundary
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean; error: Error | null }
@@ -286,10 +281,6 @@ class ErrorBoundary extends React.Component<
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("React Error Boundary caught an error:", error, errorInfo);
-  }
-
   render() {
     if (this.state.hasError) {
       return (
@@ -300,25 +291,12 @@ class ErrorBoundary extends React.Component<
               <h1 className="text-2xl font-bold text-gray-800 dark:text-cyan-50 mb-2">
                 Something went wrong
               </h1>
-              <p className="text-gray-600 dark:text-cyan-100 mb-4">
-                The application encountered an unexpected error.
-              </p>
               <button
                 onClick={() => window.location.reload()}
                 className="bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 hover:from-cyan-600 hover:via-blue-600 hover:to-indigo-700 text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
-                Reload Application
+                Reload
               </button>
-              {this.state.error && (
-                <details className="mt-4 text-left">
-                  <summary className="cursor-pointer text-sm text-gray-500 dark:text-gray-400">
-                    Error Details
-                  </summary>
-                  <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-auto">
-                    {this.state.error.message}
-                  </pre>
-                </details>
-              )}
             </div>
           </div>
         </div>

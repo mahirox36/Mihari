@@ -62,8 +62,8 @@ export function AdvanceSidebar({ isOpen, setIsOpen, writeSubs, setWriteSubs, sub
       
       {/* Main sidebar */}
       <div
-        className={`fixed top-10 right-0 w-96 max-w-full bg-gradient-to-br from-slate-900/95 via-blue-900/90 to-indigo-900/95 backdrop-blur-2xl border-l border-white/10 shadow-2xl shadow-black/50 z-50 transform transition-all duration-500 ease-out ${
-          isOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed top-10 right-0 w-96 max-w-full bg-gradient-to-br from-slate-900/95 via-blue-900/90 to-indigo-900/95 backdrop-blur-2xl border-l border-white/10 z-50 transform transition-all duration-500 ease-out ${
+          isOpen ? "translate-x-0 shadow-2xl shadow-black/50" : "translate-x-full"
         }`}
         style={{ 
           height: "calc(100vh - 2.5rem)", // 4rem = 64px, adjust if your toolbar is a different height
@@ -172,7 +172,7 @@ export function AdvanceSidebar({ isOpen, setIsOpen, writeSubs, setWriteSubs, sub
               rightButton={
                 <button 
                   type="button" 
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300"
                   onClick={handleSelectCookiesFile}
                 >
                   Browse

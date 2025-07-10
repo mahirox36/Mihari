@@ -11,10 +11,13 @@ import {
   FileArchive,
   Music,
   Radio,
-  Headphones,
-  Volume2,
   Settings2,
   Download,
+  Crown,
+  Disc3,
+  Smartphone,
+  Mic,
+  Apple,
 } from "lucide-react";
 import { GridedButton, Switch } from "./Keys";
 import {
@@ -111,7 +114,7 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
     const finalUrl = customUrl || url;
     const config: DownloadConfig = {
       output_path: downloadPath,
-      quality: quality.toLowerCase(),
+      quality: !onlyAudio ? quality.toLowerCase(): "bestaudio",
       audio_format: formatAudio.toLocaleLowerCase(),
       video_format: format.toLocaleLowerCase(),
       extract_audio: onlyAudio,
@@ -175,8 +178,12 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
             break;
 
           case "error":
-            toast.error("Download failed 💔");
-            console.error("Download error:", msg.error);
+            if (typeof msg.data.error === "string" && msg.data.error.includes("format is not available")) {
+              toast.error(`Download failed 💔\nTry change the quality to best`);
+            } else {
+              toast.error(`Download failed 💔\n${msg.data.error}`);
+            }
+            console.error("Download error:", msg.data.error);
             setProgress(null);
             setDownloading(false);
             break;
@@ -195,15 +202,15 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
       setDownloading(true);
       socket.send(JSON.stringify(requestData));
       setProgress({
-          url,
-          title: "...",
-          status: "Waiting",
-          downloaded_bytes: 0,
-          total_bytes: 0,
-          speed: 0,
-          eta: 0,
-          percentage: 0,
-        });
+        url,
+        title: "...",
+        status: "Waiting",
+        downloaded_bytes: 0,
+        total_bytes: 0,
+        speed: 0,
+        eta: 0,
+        percentage: 0,
+      });
     }
   }
 
@@ -220,7 +227,7 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
           {onlyAudio ? "Download Audio" : "Download Video"}
         </div>
         <button
-          className="text-lg text-indigo-500 hover:text-indigo-600 flex items-center gap-2 cursor-pointer select-none transition-colors"
+          className="text-lg text-indigo-500 hover:text-indigo-600 flex items-center gap-2 cursor-pointer select-none transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 rounded-lg"
           onClick={() => setIsOpen(true)}
         >
           <Settings2 /> Advance Options
@@ -239,7 +246,7 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
           onChange={(e) => setUrl(e.target.value)}
         />
         <button
-          className="flex-initial flex items-center justify-center gap-2 p-3 w-36 rounded-lg shadow-lg transition-colors bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold text-md cursor-pointer select-none"
+          className="flex-initial flex items-center justify-center gap-2 p-3 w-36 rounded-lg shadow-lg transition-colors bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold text-md cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300"
           onClick={paste}
         >
           <Clipboard /> Paste Link
@@ -268,14 +275,14 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
           {downloading && (
             <button
               onClick={() => cancel()}
-              className="flex items-center justify-center gap-2 p-3 w-36 rounded-lg shadow-lg transition-all bg-gradient-to-tl from-red-400/90 to-red-600/90 border-orange-300/50 shadow-red-500/25 hover:shadow-red-500/40 hover:from-red-400/95 hover:to-red-500/95 hover:scale-105 text-white font-semibold text-lg cursor-pointer select-none"
+              className="flex items-center justify-center gap-2 p-3 w-36 rounded-lg shadow-lg transition-all bg-gradient-to-tl from-red-400/90 to-red-600/90 border-orange-300/50 shadow-red-500/25 hover:shadow-red-500/40 hover:from-red-400/95 hover:to-red-500/95 hover:scale-105 text-white font-semibold text-lg cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
               <Download /> Cancel
             </button>
           )}
           <button
             onClick={() => download()}
-            className="flex items-center justify-center gap-2 p-3 w-36 rounded-lg shadow-lg transition-all bg-gradient-to-br from-indigo-500/90 to-blue-600/90 border-indigo-300/50 shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:from-indigo-400/95 hover:to-blue-500/95 hover:scale-105 text-white font-semibold text-lg cursor-pointer select-none disabled:from-indigo-300/70 disabled:to-blue-400/70 disabled:hover:scale-100 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 p-3 w-36 rounded-lg shadow-lg transition-all bg-gradient-to-br from-indigo-500/90 to-blue-600/90 border-indigo-300/50 shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:from-indigo-400/95 hover:to-blue-500/95 hover:scale-105 text-white font-semibold text-lg cursor-pointer select-none disabled:from-indigo-300/70 disabled:to-blue-400/70 disabled:hover:scale-100 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-300"
             disabled={downloading}
           >
             <Download /> Download
@@ -328,30 +335,58 @@ export function Home({ autoPaste, autoDownload, downloadPath }: HomeProp) {
           </div>
           <div className="flex flex-wrap gap-5">
             <GridedButton
+              name="BEST"
+              description="Automatically selects highest quality"
+              Icon={Crown}
+              property={formatAudio}
+              setProperty={setFormatAudio}
+            />
+            <GridedButton
               name="MP3"
-              description="Universal audio format"
+              description="Universal compatibility, good compression"
               Icon={Music}
               property={formatAudio}
               setProperty={setFormatAudio}
             />
             <GridedButton
               name="FLAC"
-              description="Lossless audio quality"
-              Icon={Headphones}
+              description="Lossless quality, larger file size"
+              Icon={Disc3}
               property={formatAudio}
               setProperty={setFormatAudio}
             />
             <GridedButton
               name="AAC"
-              description="High efficiency codec"
-              Icon={Volume2}
+              description="Efficient compression, Apple preferred"
+              Icon={Smartphone}
               property={formatAudio}
               setProperty={setFormatAudio}
             />
             <GridedButton
               name="OGG"
-              description="Open source format"
+              description="Open source, good for streaming"
+              Icon={Globe}
+              property={formatAudio}
+              setProperty={setFormatAudio}
+            />
+            <GridedButton
+              name="WAV"
+              description="Uncompressed, studio quality"
               Icon={Radio}
+              property={formatAudio}
+              setProperty={setFormatAudio}
+            />
+            <GridedButton
+              name="OPUS"
+              description="Modern codec, excellent for voice"
+              Icon={Mic}
+              property={formatAudio}
+              setProperty={setFormatAudio}
+            />
+            <GridedButton
+              name="M4A"
+              description="Apple format, iTunes compatible"
+              Icon={Apple}
               property={formatAudio}
               setProperty={setFormatAudio}
             />

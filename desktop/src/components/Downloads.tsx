@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { DownloadConfig } from "../types/asyncyt";
+import { FolderOpen, Trash, Play } from "lucide-react";
 import { api } from "../api";
+import toast from "react-hot-toast";
 
 interface ItemProp {
   id: number;
@@ -9,13 +11,23 @@ interface ItemProp {
   status: string;
   filepath: string;
   output: string;
+  deleteItem: (id: number) => void;
 }
 
-function Item({ id, Title, thumbnail_path, output, filepath }: ItemProp) {
+function Item({
+  id,
+  Title,
+  thumbnail_path,
+  output,
+  filepath,
+  deleteItem,
+}: ItemProp) {
+  const baseButton =
+    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl shadow-md transition-all font-semibold text-lg select-none dark:shadow-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 hover:shadow-xl";
   return (
     <div
       key={id}
-      className="flex items-center gap-3 p-2 shadow-lg shadow-indigo-500/20 bg-gradient-to-r from-white via-cyan-50 to-blue-100 dark:from-cyan-900 dark:via-blue-800 dark:to-indigo-700 rounded-xl transition-all hover:shadow-indigo-500/40 hover:scale-105 duration-200"
+      className="flex items-center gap-3 p-2 shadow-lg shadow-indigo-500/20 bg-gradient-to-r from-white via-cyan-50 to-blue-100 dark:from-cyan-900 dark:via-blue-800 dark:to-indigo-700 rounded-xl transition-all hover:shadow-indigo-500/40 hover:scale-[1.03] origin-center duration-200"
     >
       <div className="w-16 h-16 flex-shrink-0 bg-gray-200 overflow-hidden rounded-2xl">
         {thumbnail_path ? (
@@ -32,20 +44,46 @@ function Item({ id, Title, thumbnail_path, output, filepath }: ItemProp) {
       </div>
 
       {/* Item Info */}
-      <div className="flex-1">
-        <p className="font-semibold">{Title}</p>
-        <p className="font-semibold">{filepath}</p>
+      <p className="flex-1 font-semibold text-sm md:text-base truncate min-w-0">
+        {Title}
+      </p>
+      <div className="flex gap-2">
+        <button
+          title="Open file"
+          className={`${baseButton} bg-gradient-to-br from-indigo-500/0 to-blue-600/0 text-neutral-900 dark:text-neutral-100 focus:ring-indigo-400 hover:from-indigo-400/95 hover:to-blue-500/95 hover:shadow-blue-500/40 hover:scale-105`}
+          onClick={async () => {
+            const result = await window.api.openFile(`${output}/${filepath}`);
+            console.log(result);
+            if (!result.success) {
+              toast.error(result.error);
+            }
+          }}
+        >
+          <Play />
+        </button>
+
+        <button
+          title="Show in folder"
+          className={`${baseButton} bg-gradient-to-br from-indigo-500/0 to-blue-600/0 text-neutral-900 dark:text-neutral-100 focus:ring-teal-400 hover:from-teal-400/95 hover:to-cyan-500/95 hover:shadow-teal-500/40 hover:scale-105`}
+          onClick={async () => {
+            const result = await window.api.showInFolder(`${output}/${filepath}`);
+            console.log(result);
+            if (!result.success) {
+              toast.error(result.error);
+            }
+          }}
+        >
+          <FolderOpen />
+        </button>
+
+        <button
+          title="Delete History"
+          className={`${baseButton} bg-gradient-to-br from-orange-500/0 to-red-600/0 text-neutral-900 dark:text-neutral-100 focus:ring-red-400 hover:from-orange-400/95 hover:to-red-500/95 hover:shadow-red-500/40 hover:scale-105`}
+          onClick={() => deleteItem(id)}
+        >
+          <Trash />
+        </button>
       </div>
-      <button className="flex items-center justify-center gap-2 p-3  rounded-lg shadow-lg transition-all bg-gradient-to-br from-indigo-500/90 to-blue-600/90 border-indigo-300/50 shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:from-indigo-400/95 hover:to-blue-500/95 hover:scale-105 text-white font-semibold text-lg cursor-pointer select-none"
-      onClick={() => window.api.openFile(`${output}/${filepath}`)}
-      >
-        OpenFile
-      </button>
-      <button className="flex items-center justify-center gap-2 p-3  rounded-lg shadow-lg transition-all bg-gradient-to-br from-indigo-500/90 to-blue-600/90 border-indigo-300/50 shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:from-indigo-400/95 hover:to-blue-500/95 hover:scale-105 text-white font-semibold text-lg cursor-pointer select-none"
-      onClick={() => window.api.showInFolder(`${output}/${filepath}`)}
-      >
-        showInFolder
-      </button>
     </div>
   );
 }
@@ -76,18 +114,23 @@ export function Downloads({ isActive }: DownloadsProp) {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    async function fetchItems() {
-      try {
-        const response = await api.get<HistoryItem[]>("/history");
-        setItems(response.data);
-      } catch (err) {
-        setError("Oops! Failed to load items.");
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+  async function fetchItems() {
+    try {
+      const response = await api.get<HistoryItem[]>("/history");
+      setItems(response.data);
+    } catch (err) {
+      setError("Oops! Failed to load items.");
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
+  }
+  const deleteItem = (id: number) => {
+    api.delete(`/history/${id}`);
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  useEffect(() => {
     if (isActive) {
       fetchItems();
     }
@@ -109,24 +152,28 @@ export function Downloads({ isActive }: DownloadsProp) {
         onChange={(e) => setSearchTerm(e.target.value)}
         className="flex-1 p-3 rounded-lg bg-white/80 border border-gray-200 shadow-lg text-md placeholder-gray-500 select-none focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-300 dark:text-slate-900"
       />
-      <ul>
-        {filteredItems.length === 0 ? (
+      <>
+        {filteredItems.length === 0 && searchTerm !== "" ? (
           <p>No items found for "{searchTerm}"</p>
+        ) : filteredItems.length === 0 ? (
+          <p>hi</p>
         ) : (
           <ul className="flex flex-col gap-2">
             {filteredItems.map((item) => (
               <Item
+                key={item.id}
                 id={item.id}
                 Title={item.metadata?.title}
                 thumbnail_path={item.thumbnail_path}
                 status={item.status}
                 filepath={item.filename}
                 output={item.config.output_path}
+                deleteItem={deleteItem}
               />
             ))}
           </ul>
         )}
-      </ul>
+      </>
     </div>
   );
 }
