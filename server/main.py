@@ -306,14 +306,14 @@ async def delete_history(id: int):
 
 @api.websocket("/ws/download")
 async def websocket_download(websocket: WebSocket):
-    """WebSocket endpoint for real-time download progress"""
+    """WebSocket endpoint for real-time download progress with multiple download support"""
     await websocket.accept()
 
     # Configuration
     IDLE_TIMEOUT = 300  # 5 minutes of inactivity before closing
 
-    # Flags to control connection state
-    download_active = False
+    # Track multiple downloads by ID
+    active_downloads = {}  # Dict[str, asyncio.Task]
     last_activity = asyncio.get_event_loop().time()
 
     async def send_heartbeat():
@@ -326,77 +326,127 @@ async def websocket_download(websocket: WebSocket):
 
     async def handle_messages():
         """Handle incoming WebSocket messages"""
-        nonlocal download_active, last_activity
+        nonlocal last_activity
         try:
             while True:
                 data = await websocket.receive_json()
-                last_activity = (
-                    asyncio.get_event_loop().time()
-                )  # Update activity timestamp
+                last_activity = asyncio.get_event_loop().time()
 
                 if data.get("type", "") == "pong":
                     # Handle pong responses
                     continue
-                elif not download_active:
-                    # Only start new downloads if none is active
+                elif data.get("type", "") == "cancel":
+                    # Handle download cancellation
+                    download_id = data.get("id")
+                    if download_id and download_id in active_downloads:
+                        active_downloads[download_id].cancel()
+                        del active_downloads[download_id]
+                        await websocket.send_json(
+                            {"type": "cancelled", "id": download_id}
+                        )
+                else:
+                    # Start new download
                     request = DownloadRequest(**data)
-                    download_active = True
+                    download_id = getattr(request, "id", None) or str(uuid.uuid4())
+
+                    # Check if this download ID is already active
+                    if download_id in active_downloads:
+                        await websocket.send_json(
+                            {
+                                "type": "error",
+                                "id": download_id,
+                                "data": {
+                                    "error": "Download with this ID is already active"
+                                },
+                            }
+                        )
+                        continue
 
                     # Start download in background
-                    download_task = asyncio.create_task(process_download(request))
+                    download_task = asyncio.create_task(
+                        process_download(request, download_id)
+                    )
+                    active_downloads[download_id] = download_task
 
-                    # Don't await here - let it run concurrently
-                    # The download will send its own completion/error messages
         except WebSocketDisconnect:
             logger.info("Client disconnected")
         except Exception as e:
             logger.warning(f"Message handling error: {e}")
 
-    async def process_download(request: DownloadRequest):
+    async def process_download(request: DownloadRequest, download_id: str):
         """Process download in background while allowing message handling"""
-        nonlocal download_active, last_activity
-        download = await Downloads.create_download(request.url, request.config)
+        nonlocal last_activity
 
         try:
-            last_activity = asyncio.get_event_loop().time()  # Update activity at start
+            download = await Downloads.create_download(request.url, request.config)
+            last_activity = asyncio.get_event_loop().time()
 
             async def ws_progress_callback(progress: DownloadProgress):
                 nonlocal last_activity
                 try:
+                    # Ensure progress includes the download ID
+                    progress_data = progress.model_dump()
+                    progress_data["id"] = download_id
+
                     await websocket.send_json(
-                        {"type": "progress", "data": progress.model_dump()}
+                        {"type": "progress", "id": download_id, "data": progress_data}
                     )
-                    last_activity = (
-                        asyncio.get_event_loop().time()
-                    )  # Update on progress
+                    last_activity = asyncio.get_event_loop().time()
                 except Exception as e:
-                    logger.warning(f"Failed to send progress: {e}")
+                    logger.warning(f"Failed to send progress for {download_id}: {e}")
 
             await download.start_download()
+
+            # Handle format configuration
             if request.config and request.config.video_format:
                 request.config.video_format = VideoFormat(request.config.video_format)
             if request.config and request.config.audio_format:
                 request.config.audio_format = AudioFormat(request.config.audio_format)
+
             result = await downloader.download_with_response(
                 request, ws_progress_callback
             )
+
             await download.determine_success(result)
+
+            # Ensure result includes the download ID
+            result_data = result.model_dump()
+            result_data["id"] = download_id
+
             if result.success:
                 await websocket.send_json(
-                    {"type": "complete", "data": result.model_dump()}
+                    {"type": "complete", "id": download_id, "data": result_data}
                 )
             else:
                 await websocket.send_json(
-                    {"type": "error", "data": result.model_dump()}
+                    {"type": "error", "id": download_id, "data": result_data}
                 )
-            last_activity = asyncio.get_event_loop().time()  # Update on completion
+
+            last_activity = asyncio.get_event_loop().time()
+
+        except asyncio.CancelledError:
+            # Handle cancellation gracefully
+            await download.set_failed("Download cancelled")
+            await websocket.send_json(
+                {
+                    "type": "cancelled",
+                    "id": download_id,
+                    "data": {"error": "Download cancelled"},
+                }
+            )
+            raise  # Re-raise to properly handle cancellation
 
         except Exception as e:
             await download.set_failed(str(e))
-            await websocket.send_json({"type": "error", "data": {"error": str(e)}})
-            last_activity = asyncio.get_event_loop().time()  # Update on error
+            await websocket.send_json(
+                {"type": "error", "id": download_id, "data": {"error": str(e)}}
+            )
+            last_activity = asyncio.get_event_loop().time()
+
         finally:
-            download_active = False
+            # Clean up this download from active downloads
+            if download_id in active_downloads:
+                del active_downloads[download_id]
 
     async def handle_idle_timeout():
         """Monitor for idle timeout and close connection if inactive"""
@@ -407,7 +457,8 @@ async def websocket_download(websocket: WebSocket):
                 current_time = asyncio.get_event_loop().time()
                 idle_time = current_time - last_activity
 
-                if idle_time >= IDLE_TIMEOUT and not download_active:
+                # Only close if no downloads are active
+                if idle_time >= IDLE_TIMEOUT and not active_downloads:
                     logger.info(
                         f"Closing WebSocket due to idle timeout ({idle_time:.1f}s)"
                     )
@@ -418,13 +469,33 @@ async def websocket_download(websocket: WebSocket):
                 logger.warning(f"Idle timeout handler error: {e}")
                 break
 
+    async def cleanup_completed_downloads():
+        """Periodically clean up completed download tasks"""
+        while True:
+            try:
+                await asyncio.sleep(60)  # Check every minute
+                completed_ids = []
+
+                for download_id, task in active_downloads.items():
+                    if task.done():
+                        completed_ids.append(download_id)
+
+                for download_id in completed_ids:
+                    del active_downloads[download_id]
+
+            except Exception as e:
+                logger.warning(f"Cleanup task error: {e}")
+                break
+
+    # Start all background tasks
     heartbeat_task = asyncio.create_task(send_heartbeat())
     message_task = asyncio.create_task(handle_messages())
     timeout_task = asyncio.create_task(handle_idle_timeout())
+    cleanup_task = asyncio.create_task(cleanup_completed_downloads())
 
     try:
         done, pending = await asyncio.wait(
-            [heartbeat_task, message_task, timeout_task],
+            [heartbeat_task, message_task, timeout_task, cleanup_task],
             return_when=asyncio.FIRST_COMPLETED,
         )
 
@@ -438,7 +509,17 @@ async def websocket_download(websocket: WebSocket):
     except Exception as e:
         logger.warning(f"WebSocket error: {e}")
     finally:
-        for task in [heartbeat_task, message_task, timeout_task]:
+        # Cancel all active downloads
+        for download_task in active_downloads.values():
+            if not download_task.done():
+                download_task.cancel()
+                try:
+                    await download_task
+                except asyncio.CancelledError:
+                    pass
+
+        # Cancel all background tasks
+        for task in [heartbeat_task, message_task, timeout_task, cleanup_task]:
             if not task.done():
                 task.cancel()
                 try:
