@@ -15,7 +15,9 @@ interface AppProp {
 function App({ theme, setTheme }: AppProp) {
   const [autoPaste, setAutoPaste] = useState(false);
   const [autoDownload, setAutoDownload] = useState(true);
+  const [showNotification, setShowNotification] = useState(true);
   const [downloadPath, setDownloadPath] = useState("");
+  const [onDownload, setOnDownload] = useState("nothing");
   const [activePage, setActivePage] = useState("Home");
 
   type settingsFetch = {
@@ -23,7 +25,9 @@ function App({ theme, setTheme }: AppProp) {
     value: {
       auto_paste: boolean;
       auto_download: boolean;
+      show_notification: boolean;
       download_path: string;
+      on_download: string;
     };
     error?: string;
   };
@@ -34,7 +38,9 @@ function App({ theme, setTheme }: AppProp) {
         const response = await api.get<settingsFetch>("/settings");
         setAutoPaste(response.data.value.auto_paste);
         setAutoDownload(response.data.value.auto_download);
+        setShowNotification(response.data.value.show_notification);
         setDownloadPath(response.data.value.download_path || "");
+        setOnDownload(response.data.value.on_download || "nothing");
       } catch (err: any) {}
     }
     fetchData();
@@ -47,7 +53,7 @@ function App({ theme, setTheme }: AppProp) {
         <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
         <Sidebar activePage={activePage} setActivePage={setActivePage} />
         <div
-          className="flex-1 bg-gradient-to-tr from-cyan-100 via-blue-200 to-indigo-200 dark:from-cyan-950 dark:via-blue-950 dark:to-indigo-950 text-gray-900 dark:text-cyan-50 p-4 
+          className="flex-1 bg-gradient-to-tr from-[var(--bg-gradient-from)] via-[var(--bg-gradient-via)] to-[var(--bg-gradient-to)] dark:from-[var(--dark-bg-gradient-from)] dark:via-[var(--dark-bg-gradient-via)] dark:to-[var(--dark-bg-gradient-to)] text-[var(--text)] dark:text-[var(--dark-text)] p-4 
         overflow-y-auto max-h-[calc(100vh-40px)] custom-scrollbar"
         >
           <>
@@ -56,6 +62,8 @@ function App({ theme, setTheme }: AppProp) {
                 autoPaste={autoPaste}
                 autoDownload={autoDownload}
                 downloadPath={downloadPath}
+                onDownload={onDownload}
+                showNotification={showNotification}
               />
             </div>
             <div
@@ -75,6 +83,10 @@ function App({ theme, setTheme }: AppProp) {
                 setDownloadPath={setDownloadPath}
                 theme={theme}
                 setTheme={setTheme}
+                onDownload={onDownload}
+                setOnDownload={setOnDownload}
+                showNotification={showNotification}
+                setShowNotification={setShowNotification}
               />
             </div>
           </>

@@ -1,7 +1,7 @@
 import { X, Minus, Maximize } from "lucide-react";
 
 export function Toolbar() {
-  const BaseButton = "size-10 flex items-center justify-center transition-all duration-150 ease-in-ou focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300"
+  const BaseButton = "size-10 flex items-center justify-center transition-all duration-150 ease-in-ou focus:outline-none"
   return (
     <div className="relative flex items-center justify-between bg-gray-900 text-white pl-4 h-10 select-none toolbar z-50">
       <img

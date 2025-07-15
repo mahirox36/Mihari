@@ -33,12 +33,16 @@ declare global {
         error?: any;
       };
       onBackendReady: (callback: () => void) => void;
-      on?: (channel: string, callback: (...args: any[]) => void) => void;
-      removeListener?: (
+      on: (channel: string, callback: (...args: any[]) => void) => void;
+      removeListener: (
         channel: string,
         callback: (...args: any[]) => void
       ) => void;
       invoke: (channel: string, ...args: any[]) => Promise<any>;
+      notify: (title: string, body: string, filePath: string, buttons: boolean) => boolean;
+      openExternal: (url: string) => null;
+      getVersion: () => string;
+      // openPotatoWindow: () => null;
     };
   }
 }

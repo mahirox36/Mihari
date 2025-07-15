@@ -31,14 +31,14 @@ export function Switch({
         </div>
         <button
           onClick={() => setProperty(!property)}
-          className={`relative w-14 h-7 rounded-full transition-all duration-300 ease-out cursor-pointer transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300 ${
+          className={`relative w-14 h-7 rounded-full transition-all duration-300 ease-out cursor-pointer transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--focus-ring)] ${
             property
-              ? "bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 shadow-lg shadow-cyan-500/40"
-              : "bg-white/20 hover:bg-white/30"
+              ? "bg-gradient-to-r from-[var(--switch-on-from)] via-[var(--switch-on-via)] to-[var(--switch-on-to)] shadow-[var(--switch-shadow)]"
+              : "bg-[var(--switch-off-bg)]/20 hover:bg-[var(--dark-switch-off-bg)]/30"
           }`}
         >
           <div
-            className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ease-out flex items-center justify-center ${
+            className={`absolute top-0.5 w-6 h-6 bg-[var(--switch-circle-bg)] rounded-full shadow-md transition-all duration-300 ease-out flex items-center justify-center ${
               property ? "left-7 rotate-180" : "left-0.5"
             }`}
           >

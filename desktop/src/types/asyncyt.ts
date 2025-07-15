@@ -1,6 +1,7 @@
 export type DownloadProgress = {
+  id: string;
   url: string;
-  title: string;
+  info: VideoInfo;
   status: string;
   downloaded_bytes: number;
   total_bytes: number;
@@ -10,7 +11,7 @@ export type DownloadProgress = {
 };
 
 export type StartupResponse = {
-  type: "error" | "complete" | "progress" | "ping";
+  type: "error" | "complete" | "progress" | "ping" | "info_id" | "info_data" | "cancelled";
   data?: SetupProgress; // only in progress
   error?: string
 };
@@ -41,6 +42,7 @@ export type VideoInfo = {
 };
 
 export type DownloadResponse = {
+  id: string;
   success: boolean;
   message: string;
   filename?: string;
@@ -78,6 +80,7 @@ export type DownloadConfig = {
   subtitle_lang?: string;
   write_thumbnail?: boolean;
   embed_thumbnail?: boolean;
+  embed_metadata?: boolean;
   write_info_json?: boolean;
   custom_filename?: string;
   cookies_file?: string;

@@ -5,6 +5,7 @@ import {
   dialog,
   ipcMain,
   shell,
+  Notification,
 } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -35,6 +36,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   : RENDERER_DIST;
 
 let win: BrowserWindow | null;
+// let potatoWin: BrowserWindow | null = null;
 let isShuttingDown = false;
 
 class PythonProcessManager {
@@ -247,7 +249,7 @@ function createWindow() {
   win = new BrowserWindow({
     width: 1200,
     height: 850,
-    minWidth: 810,
+    minWidth: 850,
     minHeight: 650,
     frame: false,
     title: "Mihari - Ultimate Video Downloader",
@@ -260,6 +262,7 @@ function createWindow() {
       allowRunningInsecureContent: false,
     },
   });
+  app.setAppUserModelId("online.mahirou.mihari");
 
   win.setMenuBarVisibility(false);
 
@@ -410,7 +413,7 @@ ipcMain.on("window-close", () => {
   if (win) win.close();
 });
 
-ipcMain.handle("show-in-folder", async (_event, filePath: string) => {
+function showInFolder(filePath: string) {
   try {
     if (!fsSync.existsSync(filePath)) {
       return { success: false, error: "The specified file could not be found" };
@@ -421,9 +424,13 @@ ipcMain.handle("show-in-folder", async (_event, filePath: string) => {
     console.error("Failed to show in folder:", error);
     return { success: false, error: error.message };
   }
+}
+
+ipcMain.handle("show-in-folder", (_event, filePath: string) => {
+  showInFolder(filePath);
 });
 
-ipcMain.handle("open-file", async (_event, filePath: string) => {
+async function openFile(filePath: string) {
   try {
     if (!fsSync.existsSync(filePath)) {
       return { success: false, error: "The specified file could not be found" };
@@ -437,6 +444,16 @@ ipcMain.handle("open-file", async (_event, filePath: string) => {
     console.error("Failed to open file:", error);
     return { success: false, error: error.message };
   }
+}
+
+ipcMain.handle("open-file", async (_event, filePath: string) => {
+  await openFile(filePath);
+});
+
+ipcMain.handle("get-version", () => app.getVersion());
+
+ipcMain.on("open-external", (_event, url) => {
+  shell.openExternal(url);
 });
 
 ipcMain.handle("select-output-path", async () => {
@@ -527,6 +544,43 @@ ipcMain.handle("get-clipboard-text", async () => {
     return { success: false, error: error.message };
   }
 });
+
+ipcMain.handle(
+  "show-notif",
+  (_event, title: string, body: string, filePath: string, buttons: boolean) => {
+    if (win && !win.isFocused()) {
+      const notif = new Notification({
+        title,
+        body,
+        icon: path.join(process.env.VITE_PUBLIC || __dirname, "icon.ico"),
+        actions: buttons
+          ? [
+              { type: "button", text: "Open file" },
+              { type: "button", text: "Show in folder" },
+            ]
+          : [],
+        closeButtonText: "Close",
+      });
+      notif.on("click", () => {
+        console.log("Notification clicked!");
+        if (win) win.focus();
+      });
+
+      notif.on("action", async (_event, index) => {
+        if (index === 0) {
+          await openFile(filePath);
+        } else if (index === 1) {
+          showInFolder(filePath);
+        }
+      });
+
+      notif.show();
+      return true;
+    } else {
+      return false;
+    }
+  }
+);
 
 // Python process management IPC handlers
 ipcMain.handle("python-process-status", () => {

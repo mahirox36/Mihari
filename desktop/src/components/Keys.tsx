@@ -5,6 +5,7 @@ interface SwitchProbe {
   name: string;
   property: boolean;
   setProperty: React.Dispatch<React.SetStateAction<boolean>>;
+  disabled?: boolean
 }
 
 interface ButtonProps {
@@ -17,27 +18,28 @@ interface ButtonProps {
   setProperty: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export function Switch({ name, property, setProperty }: SwitchProbe) {
+export function Switch({ name, property, setProperty, disabled = false }: SwitchProbe) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 select-none">
+      <span className="flex-1 text-sm font-medium text-[var(--switch-text)] dark:text-[var(--dark-switch-text)] select-none">
         {name}
       </span>
       <button
         onClick={() => setProperty(!property)}
+        disabled ={disabled}
         className={`
-      relative w-12 h-6 rounded-full transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300
+      relative w-12 h-6 flex-shrink-0 rounded-full transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--focus-ring)]
       ${
         property
-          ? "bg-gradient-to-r from-cyan-400 to-blue-500 shadow-lg shadow-blue-500/30"
-          : "bg-gray-300 dark:bg-gray-600"
+          ? "bg-gradient-to-r from-[var(--switch-on-from)] via-[var(--switch-on-via)] to-[var(--switch-on-to)] shadow-[var(--switch-shadow)]"
+          : "bg-[var(--switch-off-bg)] dark:bg-[var(--dark-switch-off-bg)]"
       }
-      hover:scale-105 active:scale-95
+      hover:scale-105 active:scale-95 disabled:bg-gray-300/80 disabled:dark:bg-gray-600/80 disabled:cursor-not-allowed
     `}
       >
         <div
           className={`
-        absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md
+        absolute top-0.5 w-5 h-5 bg-[var(--switch-circle-bg)] rounded-full shadow-md
         transition-all duration-300 ease-in-out
         ${property ? "left-6" : "left-0.5"}
       `}

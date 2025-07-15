@@ -1,5 +1,13 @@
-import { useState } from "react";
-import { Clipboard, Download, Folder, LucideProps } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Clipboard,
+  Download,
+  Folder,
+  Info,
+  Play,
+  FolderOpen,
+  X,
+} from "lucide-react";
 import { api } from "../api";
 import { Dropdown } from "./Keys";
 
@@ -8,10 +16,14 @@ interface SettingsProp {
   setAutoPaste: React.Dispatch<React.SetStateAction<boolean>>;
   autoDownload: boolean;
   setAutoDownload: React.Dispatch<React.SetStateAction<boolean>>;
+  showNotification: boolean;
+  setShowNotification: React.Dispatch<React.SetStateAction<boolean>>;
   downloadPath: string;
   setDownloadPath: React.Dispatch<React.SetStateAction<string>>;
   theme: any;
   setTheme: React.Dispatch<any>;
+  onDownload: string;
+  setOnDownload: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export function Settings({
@@ -22,11 +34,28 @@ export function Settings({
   downloadPath,
   setDownloadPath,
   theme,
-  setTheme
-
+  setTheme,
+  onDownload,
+  setOnDownload,
+  showNotification,
+  setShowNotification,
 }: SettingsProp) {
   const [error, setError] = useState(null);
-  
+  const [version, setVersion] = useState("vNull");
+
+  useEffect(() => {
+    const fetchVersion = async () => {
+      if (Math.random() < 0.01) {
+        setVersion("vNull");
+        return;
+      }
+      const ver = await window.api.getVersion();
+      setVersion(ver);
+    };
+
+    // call it
+    fetchVersion();
+  }, []);
 
   type saveSettings = {
     key: string;
@@ -39,9 +68,12 @@ export function Settings({
     setProperty: React.Dispatch<React.SetStateAction<boolean>>
   ) {
     setProperty(!property);
+    await save(name, !property);
+  }
+  async function save(name: string, property: any) {
     const SaveSettings: saveSettings = {
       key: name.toLowerCase().replace(" ", "_"),
-      value: !property,
+      value: property,
     };
     await api.post("/setting", SaveSettings);
   }
@@ -49,7 +81,7 @@ export function Settings({
   async function selectOutputPath() {
     try {
       // @ts-ignore - window.api is available in electron context
-      const result = await window.api.selectOutputPath();
+      const result = await window.api?.selectOutputPath();
       if (result && result.success && !result.cancelled && result.path) {
         setDownloadPath(result.path);
 
@@ -64,118 +96,240 @@ export function Settings({
     }
   }
 
-  interface SwitchProps {
-    name: string;
-    description: string;
-    property: boolean;
-    setProperty: React.Dispatch<React.SetStateAction<boolean>>;
-    Icon: React.ForwardRefExoticComponent<
-      Omit<LucideProps, "ref"> & React.RefAttributes<SVGSVGElement>
-    >;
-  }
-
-  function Switch({
-    name,
+  function SettingItem({
+    icon: Icon,
+    title,
     description,
-    property,
-    setProperty,
-    Icon,
-  }: SwitchProps) {
+    children,
+  }: {
+    icon: React.ForwardRefExoticComponent<any>;
+    title: string;
+    description: string;
+    children: React.ReactNode;
+  }) {
     return (
-      <div className="flex flex-col gap-3">
-        <span className="flex gap-2 items-center text-sm font-medium text-gray-700 dark:text-gray-300 select-none">
-          <Icon size={16} />
-          {name}
-        </span>
-        <span className="flex ml-6 items-center text-xs text-gray-600 dark:text-gray-400 select-none">
-          {description}
-        </span>
-        <button
-          onClick={() => saveAndSet(name, property, setProperty)}
-          className={`
-            relative w-12 h-6 ml-6 rounded-full transition-all duration-300 ease-in-out cursor-pointer
-            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300
-            ${
-              property
-                ? "bg-gradient-to-r from-cyan-400 to-blue-500 shadow-lg shadow-blue-500/30"
-                : "bg-gray-300 dark:bg-gray-600"
-            }
-            hover:scale-105 active:scale-95
-          `}
-        >
-          <div
-            className={`
-              absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md
-              transition-all duration-300 ease-in-out
-              ${property ? "left-6" : "left-0.5"}
-            `}
-          />
-        </button>
-      </div>
-    );
-  }
-
-  function PathSelector() {
-    return (
-      <div className="flex flex-col gap-3">
-        <span className="flex gap-2 items-center text-sm font-medium text-gray-700 dark:text-gray-300 select-none">
-          <Folder size={16} />
-          Download Path
-        </span>
-        <span className="flex ml-6 items-center text-xs text-gray-600 dark:text-gray-400 select-none">
-          Choose where downloads are saved
-        </span>
-        <div className="flex ml-6 gap-2 items-center">
-          <div className="flex-1 px-3 py-2 text-xs bg-gray-100 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 truncate">
-            {downloadPath || "No path selected"}
+      <div className="flex items-center justify-between py-4 border-b border-gray-700 dark:border-gray-100 last:border-b-0">
+        <div className="flex items-start gap-3 flex-1">
+          <Icon size={20} className="text-gray-600 dark:text-gray-400 mt-0.5" />
+          <div className="flex-1">
+            <div className="font-medium text-gray-900 dark:text-gray-100">
+              {title}
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {description}
+            </div>
           </div>
-          <button
-            onClick={selectOutputPath}
-            className="px-3 py-2 text-xs bg-gradient-to-r from-cyan-400 to-blue-500 text-white rounded-md hover:from-cyan-500 hover:to-blue-600 transition-all duration-200 shadow-sm hover:shadow-md
-            focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300"
-          >
-            Browse
-          </button>
         </div>
+        <div className="ml-4">{children}</div>
       </div>
     );
   }
 
-  if (error) return <div className="text-red-500 p-4">ERROR: {error}</div>;
+  function Toggle({
+    enabled,
+    onChange,
+  }: {
+    enabled: boolean;
+    onChange: () => void;
+  }) {
+    return (
+      <button
+        onClick={onChange}
+        className={`
+      relative w-12 h-6 flex-shrink-0 rounded-full transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300
+      ${
+        enabled
+          ? "bg-gradient-to-r from-cyan-400 to-blue-500 shadow-lg shadow-blue-500/30"
+          : "bg-gray-300 dark:bg-gray-600"
+      }
+      hover:scale-105 active:scale-95
+    `}
+      >
+        <div
+          className={`
+        absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md
+        transition-all duration-300 ease-in-out
+        ${enabled ? "left-6" : "left-0.5"}
+      `}
+        />
+      </button>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-2 p-4 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg">
+        <X size={16} />
+        <span>Error: {error}</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col space-y-6 p-4">
-      <div className="flex justify-between items-center mb-2">
-        <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-200 select-none">
+    <div className="max-w-2xl mx-auto p-6 space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           Settings
         </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Customize your experience
+        </p>
       </div>
 
-      <div className="space-y-8">
-        <Dropdown
-          placeholder={theme}
-          items={[
-            { label: "System", value: "system" },
-            { label: "Light Mode", value: "light" },
-            { label: "Dark Mode", value: "dark" },
-          ]}
-          onSelect={(value) => setTheme(value)}
-        />
-        <Switch
-          name="Auto Paste"
-          description="Auto paste the link you have copied into the URL box when the app starts"
-          property={autoPaste}
-          setProperty={setAutoPaste}
-          Icon={Clipboard}
-        />
-        <Switch
-          name="Auto Download"
-          description="When pasted via the button it auto downloads"
-          property={autoDownload}
-          setProperty={setAutoDownload}
-          Icon={Download}
-        />
-        <PathSelector />
+      {/* Settings List */}
+      <div
+        className="space-y-0 border border-gray-700 dark:border-gray-200 rounded-xl p-6 py-0
+      overflow-y-auto max-h-[calc(59vh)] custom-scrollbar"
+      >
+        <SettingItem
+          icon={Info}
+          title="Theme"
+          description="Choose your preferred appearance"
+        >
+          <Dropdown
+            placeholder="System"
+            value={theme}
+            items={[
+              { label: "System", value: "system" },
+              { label: "Light Mode", value: "light" },
+              { label: "Dark Mode", value: "dark" },
+            ]}
+            onSelect={(value) => setTheme(value)}
+          />
+        </SettingItem>
+
+        <SettingItem
+          icon={Clipboard}
+          title="Auto Paste"
+          description="Auto paste copied links into the URL box when the app starts"
+        >
+          <Toggle
+            enabled={autoPaste}
+            onChange={() => saveAndSet("Auto Paste", autoPaste, setAutoPaste)}
+          />
+        </SettingItem>
+
+        <SettingItem
+          icon={Download}
+          title="Auto Download"
+          description="Automatically start downloads when pasted via button"
+        >
+          <Toggle
+            enabled={autoDownload}
+            onChange={() =>
+              saveAndSet("Auto Download", autoDownload, setAutoDownload)
+            }
+          />
+        </SettingItem>
+
+        <SettingItem
+          icon={Download}
+          title="Show Notification"
+          description="Shows a Notification after Downloading if the app is not focused"
+        >
+          <Toggle
+            enabled={showNotification}
+            onChange={() =>
+              saveAndSet(
+                "Show Notification",
+                showNotification,
+                setShowNotification
+              )
+            }
+          />
+        </SettingItem>
+
+        <SettingItem
+          icon={Download}
+          title="On Download"
+          description="What to do after download completes"
+        >
+          <Dropdown
+            placeholder="Nothing"
+            value={onDownload}
+            items={[
+              {
+                label: "Nothing",
+                value: "nothing",
+                onClick() {
+                  save("on_download", "nothing");
+                },
+              },
+              {
+                label: "Play it",
+                value: "play",
+                icon: Play,
+                onClick() {
+                  save("on_download", "play");
+                },
+              },
+              {
+                label: "Show in Folder",
+                value: "open_folder",
+                icon: FolderOpen,
+                onClick() {
+                  save("on_download", "open_folder");
+                },
+              },
+            ]}
+            onSelect={(value) => setOnDownload(value)}
+          />
+        </SettingItem>
+
+        <SettingItem
+          icon={Folder}
+          title="Download Path"
+          description="Choose where downloads are saved"
+        >
+          <div className="flex items-center gap-2">
+            <div className="px-3 py-2 text-sm border border-gray-600 dark:border-gray-300 rounded-lg min-w-48 max-w-64 truncate text-gray-700 dark:text-gray-300">
+              {downloadPath || "No path selected"}
+            </div>
+            <button
+              onClick={selectOutputPath}
+              className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Browse
+            </button>
+          </div>
+        </SettingItem>
+      </div>
+
+      {/* About Section */}
+      <div className="text-center space-y-4 border-gray-600 dark:border-gray-300">
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            About
+          </h3>
+          <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ">
+            <p className="flex items-center justify-center gap-1.5">
+              Made with ❤️ by
+              <p
+                onClick={() => {
+                  window.api.openExternal("https://github.com/mahirox36");
+                }}
+                className="cursor-pointer text-indigo-600 hover:text-indigo-400 dark:text-indigo-400 dark:hover:text-indigo-300 hover:scale-105 transition duration-300"
+              >
+                MahiroX36
+              </p>
+            </p>
+            <p
+              onClick={() => {
+                if (version === "vNull") {
+                  // window.api.openPotatoWindow();
+                }
+              }}
+              className={
+                version === "vNull"
+                  ? "cursor-pointer glitch hover:text-indigo-600 hover:scale-105 transition duration-300 dark:text-violet-400 dark:hover:text-violet-300"
+                  : "cursor-pointer text-indigo-600 hover:text-indigo-400 dark:text-indigo-400 dark:hover:text-indigo-300 hover:scale-105 transition duration-300"
+              }
+            >
+              Version {version}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

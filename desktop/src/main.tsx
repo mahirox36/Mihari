@@ -10,7 +10,7 @@ import {
 import { api } from "./api.ts";
 import { Toolbar } from "./components/Toolbar.tsx";
 
-const isDev = !import.meta.env.DEV;
+const isDev = import.meta.env.DEV;
 
 type AppState = {
   loading: boolean;
@@ -131,7 +131,6 @@ function Root() {
     }
   }, [theme]);
 
-  // Optional: Listen for system preference changes
   useEffect(() => {
     if (theme === "system") {
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -252,9 +251,15 @@ function Root() {
       console.log("Development mode: skipping backend initialization");
       return;
     }
-
-    initializeApp();
   }, []);
+
+  window.api.on("backend-ready", ()=> {
+    if (!isDev) {
+      console.log("Development mode: skipping backend ready call");
+      return;
+    }
+    initializeApp();
+  })
 
   if (state.loading) {
     return <LoadingScreen state={state} />;
