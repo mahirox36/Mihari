@@ -130,12 +130,6 @@ class Downloads(Model):
             self.status = Status.FAILED
             self.date_finished = utcnow()
             self.error = error[:2000]
-            self.retry_count += 1
-
-            # Auto-retry logic
-            # if self.retry_count < self.max_retries:
-            #     self.status = Status.QUEUED
-            #     self.date_finished = None
 
             await self.save()
 
@@ -285,6 +279,7 @@ class Users(Model):
         default={
             "auto_paste": False,
             "auto_download": True,
+            "show_notification": True,
             "download_path": str(Path.home() / "Videos" / "Mihari"),
         }
     )
