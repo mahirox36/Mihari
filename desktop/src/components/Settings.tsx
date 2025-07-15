@@ -179,8 +179,7 @@ export function Settings({
 
       {/* Settings List */}
       <div
-        className="space-y-0 border border-gray-700 dark:border-gray-200 rounded-xl p-6 py-0
-      overflow-y-auto max-h-[calc(59vh)] custom-scrollbar"
+        className="space-y-0 border border-gray-700 dark:border-gray-200 rounded-xl p-6 py-2"
       >
         <SettingItem
           icon={Info}

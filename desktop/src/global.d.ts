@@ -42,6 +42,10 @@ declare global {
       notify: (title: string, body: string, filePath: string, buttons: boolean) => boolean;
       openExternal: (url: string) => null;
       getVersion: () => string;
+      pythonProcessStatus: () => {
+        running: boolean;
+        ready: boolean;
+      };
       // openPotatoWindow: () => null;
     };
   }

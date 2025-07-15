@@ -251,15 +251,21 @@ function Root() {
       console.log("Development mode: skipping backend initialization");
       return;
     }
+    (async () => {
+      const response = await window.api.pythonProcessStatus();
+      if (response.ready) {
+        initializeApp();
+      }
+    })();
   }, []);
 
-  window.api.on("backend-ready", ()=> {
-    if (!isDev) {
+  window.api.onBackendReady(async () => {
+    if (isDev) {
       console.log("Development mode: skipping backend ready call");
       return;
     }
     initializeApp();
-  })
+  });
 
   if (state.loading) {
     return <LoadingScreen state={state} />;
