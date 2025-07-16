@@ -115,7 +115,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mihari-${{ matrix.platform }}
-          path: release_artifacts/
+          path: |
+            release_artifacts/*.exe
+            release_artifacts/*.dmg
+            release_artifacts/*.zip
+            release_artifacts/*.AppImage
           if-no-files-found: warn
   
   release:
@@ -134,22 +138,15 @@ jobs:
       - name: 📂 List downloaded artifacts (debug)
         run: find ./all-builds -maxdepth 1 -type f -ls
         
-      - name: 🌸 Get latest release
-        id: get_latest
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const { data: release } = await github.rest.repos.getLatestRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo
-            });
-            core.setOutput('tag_name', release.tag_name);
-        
+      - name: 🌸 Set tag name from current ref
+        id: get_tag
+        run: echo "tag_name=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
       - name: ✨ Upload artifacts to latest release
         uses: ncipollo/release-action@v1
         with:
-          tag: ${{ steps.get_latest.outputs.tag_name }}
+          tag: ${{ steps.get_tag.outputs.tag_name }}
           allowUpdates: true
           replacesArtifacts: true
-          artifacts: "all-builds/**/*.exe,all-builds/**/*.dmg,all-builds/**/*.zip"
+          artifacts: all-builds/**/*.exe,all-builds/**/*.dmg,all-builds/**/*.zip,all-builds/**/*.AppImage"
           token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: true
