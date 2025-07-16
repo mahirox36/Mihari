@@ -564,7 +564,7 @@ ipcMain.handle("is-update-available", async () => {
       latestVersion = latestVersion.slice(1);
     }
 
-    const updateAvailable = semver.gt(localVersion, latestVersion);
+    const updateAvailable = semver.gt(latestVersion, localVersion);
     return {
       updateAvailable,
       localVersion,

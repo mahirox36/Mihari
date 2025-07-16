@@ -2,9 +2,9 @@
 
 **Mihari** is a sleek, fast, and _super customizable_ media downloader powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp)!  
 Whether you're saving a single song or downloading an entire playlist, **Mihari** makes it easy, efficient, and cute too! ✨
-👉 **[Download Mihari-BETA for Windows/macos/ubuntu](https://github.com/mahirox36/Mihari/releases/latest)**, Just grab `Mihari-Setup.exe` and you’re ready to go!
+👉 **[Download Mihari-BETA for Windows](https://github.com/mahirox36/Mihari/releases/latest)**, Just grab `Mihari-Setup.exe` and you’re ready to go!
 
-> Mac will release in the final build and not in the pre-release!
+> Mac and Linux will release in the final build and not in the pre-release!
 
 ![Mihari Screenshot](assets/app.png)
 
