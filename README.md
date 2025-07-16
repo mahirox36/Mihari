@@ -4,9 +4,9 @@
 Whether you're saving a single song or downloading an entire playlist, **Mihari** makes it easy, efficient, and cute too! ✨
 👉 **[Download Mihari-BETA for Windows/macos/ubuntu](https://github.com/mahirox36/Mihari/releases/latest)**, Just grab `Mihari-Setup.exe` and you’re ready to go!
 
-![Mihari Screenshot](assets/app.png)
+> Mac will release in the final build and not in the pre-release!
 
-> Mihari New Release Now in BETA!
+![Mihari Screenshot](assets/app.png)
 
 ---
 

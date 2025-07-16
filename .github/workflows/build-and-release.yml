@@ -18,12 +18,12 @@ jobs:
           - os: windows-latest
             backend_ext: ".exe"
             platform: windows
-          - os: macos-13
-            backend_ext: ""
-            platform: macos-intel
-          - os: macos-14
-            backend_ext: ""
-            platform: macos-arm
+          # - os: macos-13
+          #   backend_ext: ""
+          #   platform: macos-intel
+          # - os: macos-14
+          #   backend_ext: ""
+          #   platform: macos-arm
       fail-fast: false
     steps:
       - name: 📥 Checkout
