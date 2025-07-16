@@ -14,6 +14,9 @@ import { spawn, ChildProcess } from "child_process";
 import fsSync from "fs";
 import kill from "tree-kill";
 import { promisify } from "util";
+import semver from "semver";
+
+const localVersion = app.getVersion();
 
 const killAsync = promisify(kill);
 
@@ -450,7 +453,7 @@ ipcMain.handle("open-file", async (_event, filePath: string) => {
   await openFile(filePath);
 });
 
-ipcMain.handle("get-version", () => app.getVersion());
+ipcMain.handle("get-version", () => localVersion);
 
 ipcMain.on("open-external", (_event, url) => {
   shell.openExternal(url);
@@ -542,6 +545,37 @@ ipcMain.handle("get-clipboard-text", async () => {
   } catch (error: any) {
     console.error("Failed to read clipboard:", error);
     return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("is-update-available", async () => {
+  try {
+    const response = await fetch(
+      "https://api.github.com/repos/mahirox36/mihari/releases/latest"
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch latest release info");
+    }
+
+    const data = await response.json();
+    let latestVersion = data.tag_name as string;
+
+    if (latestVersion.startsWith("v")) {
+      latestVersion = latestVersion.slice(1);
+    }
+
+    const updateAvailable = semver.gt(localVersion, latestVersion);
+    return {
+      updateAvailable,
+      localVersion,
+      latestVersion,
+    };
+  } catch (error) {
+    return {
+      updateAvailable: false,
+      localVersion,
+      latestVersion:"1.0.0"
+    };
   }
 });
 

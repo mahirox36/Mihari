@@ -46,6 +46,11 @@ declare global {
         running: boolean;
         ready: boolean;
       };
+      isUpdateAvailable: () => {
+        updateAvailable: boolean;
+        localVersion: string;
+        latestVersion: string;
+      }
       // openPotatoWindow: () => null;
     };
   }

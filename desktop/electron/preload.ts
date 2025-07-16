@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld("api", {
   selectOutputPath: () => ipcRenderer.invoke("select-output-path"),
   selectCookieFile: () => ipcRenderer.invoke("select-cookie-file"),
   pythonProcessStatus: () => ipcRenderer.invoke("python-process-status"),
+  isUpdateAvailable: () => ipcRenderer.invoke("is-update-available"),
   onBackendReady: (callback: () => void) => {
     ipcRenderer.on("backend-ready", (_event: IpcRendererEvent) => {
       callback();
