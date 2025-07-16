@@ -1,0 +1,142 @@
+name: Build and Release Mihari
+on:
+  push:
+    tags:
+      - 'v*' 
+permissions:
+  contents: write 
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            backend_ext: ""
+            platform: linux
+          - os: windows-latest
+            backend_ext: ".exe"
+            platform: windows
+          - os: macos-13
+            backend_ext: ""
+            platform: macos-intel
+          - os: macos-14
+            backend_ext: ""
+            platform: macos-arm
+      fail-fast: false
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+      
+      # ----------- BACKEND (PyInstaller) -----------
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: 📦 Install Python dependencies
+        working-directory: server
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+      
+      - name: 🔨 Build Backend with PyInstaller (Windows)
+        if: matrix.platform == 'windows'
+        working-directory: server
+        run: |
+          pyinstaller --onefile --noconfirm --clean ^
+            --name "Mihari-backend" ^
+            --icon "../assets/icon.ico" ^
+            --add-data "libs;libs" ^
+            --copy-metadata tortoise-orm ^
+            --hidden-import=tortoise.backends.sqlite ^
+            main.py
+        shell: cmd
+      
+      - name: 🔨 Build Backend with PyInstaller (Unix)
+        if: matrix.platform != 'windows'
+        working-directory: server
+        run: |
+          pyinstaller --onefile --noconfirm --clean \
+            --name "Mihari-backend" \
+            --icon "../assets/icon.ico" \
+            --add-data "libs:libs" \
+            --copy-metadata tortoise-orm \
+            --hidden-import=tortoise.backends.sqlite \
+            main.py
+        shell: bash
+      
+      # ----------- FRONTEND (Electron) -----------
+      - name: 🧱 Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: 📦 Install NPM deps & build
+        working-directory: desktop
+        run: |
+          npm ci
+          npm run build
+      
+      # ----------- COLLECT ARTIFACTS -----------
+      - name: 📂 Create artifacts directory
+        run: mkdir -p release_artifacts
+      
+      - name: 📂 Move backend binary (Windows)
+        if: matrix.platform == 'windows'
+        run: |
+          if (Test-Path "server/dist/Mihari-backend.exe") {
+            Copy-Item "server/dist/Mihari-backend.exe" "release_artifacts/"
+          }
+        shell: pwsh
+      
+      - name: 📂 Move backend binary (Unix)
+        if: matrix.platform != 'windows'
+        run: |
+          if [ -f "server/dist/Mihari-backend" ]; then
+            cp "server/dist/Mihari-backend" "release_artifacts/"
+          fi
+        shell: bash
+      
+      - name: 📂 Move frontend build
+        run: |
+          if [ -d "desktop/dist" ]; then
+            cp -r desktop/dist/* release_artifacts/ 2>/dev/null || true
+          fi
+        shell: bash
+      
+      - name: 📂 List artifacts (debug)
+        run: ls -la release_artifacts/
+        shell: bash
+      
+      - name: 📤 Upload artifacts to workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: mihari-${{ matrix.platform }}
+          path: release_artifacts/
+          if-no-files-found: warn
+  
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+      
+      - name: 📥 Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./all-builds
+      
+      - name: 📂 List downloaded artifacts (debug)
+        run: find ./all-builds -type f -ls
+      
+      - name: 🚀 Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: all-builds/**/*
+          draft: false
+          prerelease: false

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { DownloadConfig } from "../types/asyncyt";
-import { FolderOpen, Trash, Play } from "lucide-react";
+import { FolderOpen, Trash, Play, Search, Download } from "lucide-react";
 import { api } from "../api";
 import toast from "react-hot-toast";
 
@@ -144,21 +144,35 @@ export function Downloads({ isActive }: DownloadsProp) {
   if (error) return <p>{error}</p>;
 
   return (
-    <div className="flex flex-col gap-4 p-3">
-      <input
-        type="text"
-        placeholder="Search by title..."
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="flex-1 p-3 rounded-lg bg-white/80 border border-gray-200 shadow-lg text-md placeholder-gray-500 select-none focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-300 dark:text-slate-900"
-      />
-      <>
+    <div className="flex flex-col gap-5 p-4">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-200 w-4 h-4" />
+        <input
+          type="text"
+          placeholder="Search downloads..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-10 pr-4 py-3 rounded-xl bg-gradient-to-r from-white to-cyan-50 border border-gray-200 dark:border-gray-700 shadow-sm text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-300  transition-all text-black"
+        />
+      </div>
+      
+      <div className="min-h-[200px]">
         {filteredItems.length === 0 && searchTerm !== "" ? (
-          <p>No items found for "{searchTerm}"</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Search className="w-12 h-12 text-gray-600 dark:text-gray-300 mb-3" />
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              No matches found for "{searchTerm}"
+            </p>
+          </div>
         ) : filteredItems.length === 0 ? (
-          <p>hi</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <Download className="w-12 h-12 text-gray-600 dark:text-gray-300 mb-3" />
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              Your downloads will appear here
+            </p>
+          </div>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <div className="space-y-3">
             {filteredItems.map((item) => (
               <Item
                 key={item.id}
@@ -171,9 +185,9 @@ export function Downloads({ isActive }: DownloadsProp) {
                 deleteItem={deleteItem}
               />
             ))}
-          </ul>
+          </div>
         )}
-      </>
+      </div>
     </div>
   );
 }

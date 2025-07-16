@@ -5,3 +5,5 @@ rich
 aiofiles
 aiohttp
 asyncyt
+tortoise-ORM
+aiosqlite
