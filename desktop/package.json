@@ -1,8 +1,8 @@
 {
   "name": "mihari",
   "private": true,
-  "version": "1.1.0",
-  "description": "Mihari: Ultimate Video Downloader powered",
+  "version": "1.1.0-beta-1",
+  "description": "Mihari: Ultimate Video Downloader",
   "type": "module",
   "author": "MahiroX36",
   "scripts": {
@@ -14,7 +14,6 @@
   "build": {
     "appId": "online.mahirou.mihari",
     "productName": "Mihari",
-    "artifactName": "Mihari-Setup.exe",
     "directories": {
       "output": "dist"
     },
@@ -29,19 +28,75 @@
     ],
     "win": {
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
-      "icon": "../assets/icon.ico"
+      "icon": "../assets/icon.ico",
+      "artifactName": "Mihari-Setup-${version}-win-${arch}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "../assets/icon.icns",
+      "artifactName": "Mihari-${version}-mac-${arch}.${ext}",
+      "category": "public.app-category.utilities"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "../assets/icon.png",
+      "artifactName": "Mihari-${version}-linux-${arch}.${ext}",
+      "category": "Utility"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Mihari"
+    },
+    "dmg": {
+      "title": "Mihari ${version}",
+      "icon": "../assets/icon.icns",
+      "background": "../assets/dmg-background.png",
+      "contents": [
+        {
+          "x": 110,
+          "y": 150,
+          "type": "file"
+        },
+        {
+          "x": 240,
+          "y": 150,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     },
     "extraResources": [
       {
-        "from": "../server/dist/Mihari backend.exe",
-        "to": "Mihari backend.exe"
+        "from": "../server/dist/Mihari-backend${/*}",
+        "to": "backend/",
+        "filter": [
+          "**/*"
+        ]
       }
     ]
   },
@@ -53,12 +108,14 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.5.2",
+    "semver": "^7.7.2",
     "tailwindcss": "^4.1.8",
     "tree-kill": "^1.2.2"
   },
   "devDependencies": {
     "@types/react": "^18.2.64",
     "@types/react-dom": "^18.2.21",
+    "@types/semver": "^7.7.0",
     "@typescript-eslint/eslint-plugin": "^7.1.1",
     "@typescript-eslint/parser": "^7.1.1",
     "@vitejs/plugin-react": "^4.2.1",
