@@ -75,7 +75,6 @@
     "dmg": {
       "title": "Mihari ${version}",
       "icon": "../assets/icon.icns",
-      "background": "../assets/dmg-background.png",
       "contents": [
         {
           "x": 110,

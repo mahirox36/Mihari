@@ -119,24 +119,37 @@ jobs:
           if-no-files-found: warn
   
   release:
-    name: Create Release
+    name: Upload to Latest Release
     needs: build
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
-      
+    
       - name: 📥 Download all build artifacts
         uses: actions/download-artifact@v4
         with:
           path: ./all-builds
-      
+        
       - name: 📂 List downloaded artifacts (debug)
         run: find ./all-builds -type f -ls
-      
-      - name: 🚀 Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        
+      - name: 🌸 Get latest release
+        id: get_latest
+        uses: actions/github-script@v6
         with:
-          files: all-builds/**/*
-          draft: false
-          prerelease: false
+          script: |
+            const { data: release } = await github.repos.getLatestRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            core.setOutput('tag_name', release.tag_name);
+        
+      - name: ✨ Upload artifacts to latest release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.get_latest.outputs.tag_name }}
+          allowUpdates: true
+          replacesArtifacts: true
+          artifacts: "all-builds/**/*.exe,all-builds/**/*.dmg,all-builds/**/*.zip"
+          token: ${{ secrets.GITHUB_TOKEN }}
