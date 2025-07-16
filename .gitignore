@@ -1,7 +1,19 @@
-node_modules/
-dist/*
-ffmpeg.exe
-ffplay.exe
-ffprobe.exe
-yt-dlp.exe
-android-version
+bin/
+temp/
+app.db
+downloads/
+cache/
+old.*
+android-version/
+web/
+__pycache__/
+*sqlite*
+Mihari.code-workspace
+dist
+build
+Mihari backend.spec
+build.bat
+dist-electron
+thumbnails
+logs.log
+todo.md

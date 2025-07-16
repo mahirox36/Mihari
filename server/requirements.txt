@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic
+rich
+aiofiles
+aiohttp
+asyncyt
+tortoise-ORM
+aiosqlite

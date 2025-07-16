@@ -2,39 +2,39 @@
 
 **Mihari** is a sleek, fast, and _super customizable_ media downloader powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp)!  
 Whether you're saving a single song or downloading an entire playlist, **Mihari** makes it easy, efficient, and cute too! ✨
-👉 **[Download Mihari for Windows](https://github.com/mahirox36/Mihari/releases/latest)**, Just grab `Mihari-Setup.exe` and you’re ready to go!
+👉 **[Download Mihari-BETA for Windows/macos/ubuntu](https://github.com/mahirox36/Mihari/releases/latest)**, Just grab `Mihari-Setup.exe` and you’re ready to go!
 
-![Mihari Screenshot](assets/new_app.png)
-> Note: this image is a preview of the next version of the app, if you want to know the [current app look](#-current-app-look) go to the bottom
+![Mihari Screenshot](assets/app.png)
+
+> Mihari New Release Now in BETA!
 
 ---
 
-## ✨ Features
+## ✨ Features (Beta Release)
 
 - 🎬 **Universal Video Support** — Download from thousands of platforms via `yt-dlp`.
 - ♾️ **Unlimited Downloads** — No caps, no restrictions. Download freely!
 - ⚙️ **Highly Customizable** — Choose format, quality, subtitles, metadata, thumbnails, cookies, and more!
-- 🖱️ **One-Click Simplicity** — Download instantly with a single click or keyboard shortcut.
-- 📦 **Batch Downloading** — Drop multiple URLs and let **Mihari** handle the rest.
-- 📋 **Clipboard Magic** — Auto-pastes links on launch.
+- 🖱️ **One‑Click Simplicity** — Download instantly with a single click or keyboard shortcut. _(Shortcuts coming soon!)_
+- 📥 **Multiple Links at Once** — Paste in several links together and **Mihari** will download them all simultaneously.
+- 📋 **Clipboard Magic** — Auto‑pastes links on launch.
 - 🕘 **Download History** — Instantly see what you’ve downloaded before.
 - 🎧 **Wide Format Support** — From MP4 to MP3, WebM to FLAC — **Mihari** handles them all.
-- 🌙 **Dark Mode** — For cozy late-night downloads.
+- 🌙 **Theme Support** — Light mode for sunny days, dark mode for cozy late nights.
+- 🏗️ **Frontend Overhaul** — Rebuilt with **React + TypeScript** for a smoother, snappier, and prettier experience. ✨
+- 💻 **Cross‑Platform Magic** — Runs beautifully on **Windows, macOS, and Linux** so you can download anywhere!
 - 📁 **Custom Save Locations** — Save files exactly where you want them.
-- ⚡ **Power Shortcuts** — Navigate faster than ever with built-in hotkeys.
+- 🔔 **Notifications** — Get an instant alert when your downloads finish.
+- ⚡ **Power Shortcuts** — Navigate faster than ever with built‑in hotkeys _(coming soon!)_.
+- 📂 **On‑Download Actions** — Auto‑play, open folder, or do nothing. Your choice!
 
 ---
 
-## 🚧 Large Core Changes Incoming!
+## 🌸 Upcoming Features
 
-**Mihari** is evolving from a simple HTML + JS app into a full-fledged system powered by **React + TypeScript** on the frontend, bringing you a smoother and more modern experience! 💻✨
-
-- 🌟 **Frontend Overhaul:** The desktop app will be rebuilt using React + TypeScript for better performance and maintainability.
-- 📱 **New Platforms:** An Android version and a website version are in development, so **Mihari** can be with you everywhere.
-- 🛠️ **Backend Server:** A dedicated backend will handle all the heavy lifting for the website and Android apps.
-- 🖥️ **Desktop Independence:** The desktop version will stay fully local — no server required — ensuring fast, private, and offline-friendly use.
-
-> The backend is essentially complete (99% done)! I’m now fully focused on finalizing the desktop app. Once it’s polished and released, the Android and web versions will come next~ 🌸
+- 📂 Drag & drop .txt/.csv with links
+- 🍥 Tray icon with quick actions
+- ⌨️ Shortcuts
 
 ---
 
@@ -47,7 +47,7 @@ With its intuitive interface and cute vibes, it’s your perfect companion for d
 
 ## 🛠️ Powered By
 
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp) — A feature-rich YouTube downloader
+- [AsyncYT](https://github.com/mahirox36/asyncyt) — Fully async, high‑performance media downloader powered by yt‑dlp and ffmpeg — works across a wide range of sites.
 - [Electron](https://www.electronjs.org/) — A framework for cross-platform desktop apps
 
 ---
@@ -56,7 +56,3 @@ With its intuitive interface and cute vibes, it’s your perfect companion for d
 
 This project is licensed under the MIT License.  
 Use it, modify it, share it — **Mihari** loves making friends!
-
-## 🌟 Current app look
-
-![Mihari Screenshot](assets/app.png)

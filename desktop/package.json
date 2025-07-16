@@ -1,0 +1,133 @@
+{
+  "name": "mihari",
+  "private": true,
+  "version": "2.0.0-beta-1",
+  "description": "Mihari: Ultimate Video Downloader",
+  "type": "module",
+  "author": "MahiroX36",
+  "scripts": {
+    "dev": "cd ../server && start python main.py && cd ../desktop && vite",
+    "build": "tsc && vite build && electron-builder",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "build": {
+    "appId": "online.mahirou.mihari",
+    "productName": "Mihari",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "dist",
+      "dist-electron",
+      "!**/*.{md,markdown,MD}",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/.bin",
+      "!build/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "../assets/icon.ico",
+      "artifactName": "Mihari-Setup-${version}-win-${arch}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "../assets/icon.icns",
+      "artifactName": "Mihari-${version}-mac-${arch}.${ext}",
+      "category": "public.app-category.utilities"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "../assets/icon.png",
+      "artifactName": "Mihari-${version}-linux-${arch}.${ext}",
+      "category": "Utility"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Mihari"
+    },
+    "dmg": {
+      "title": "Mihari ${version}",
+      "icon": "../assets/icon.icns",
+      "background": "../assets/dmg-background.png",
+      "contents": [
+        {
+          "x": 110,
+          "y": 150,
+          "type": "file"
+        },
+        {
+          "x": 240,
+          "y": 150,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "extraResources": [
+      {
+        "from": "../server/dist/Mihari-backend${/*}",
+        "to": "backend/",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.8",
+    "axios": "^1.10.0",
+    "fs": "^0.0.1-security",
+    "lucide-react": "^0.522.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hot-toast": "^2.5.2",
+    "semver": "^7.7.2",
+    "tailwindcss": "^4.1.8",
+    "tree-kill": "^1.2.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "@types/semver": "^7.7.0",
+    "@typescript-eslint/eslint-plugin": "^7.1.1",
+    "@typescript-eslint/parser": "^7.1.1",
+    "@vitejs/plugin-react": "^4.2.1",
+    "electron": "^30.0.1",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.6",
+    "vite-plugin-electron": "^0.28.6",
+    "vite-plugin-electron-renderer": "^0.14.5"
+  },
+  "main": "dist-electron/main.js"
+}
