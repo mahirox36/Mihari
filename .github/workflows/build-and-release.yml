@@ -132,14 +132,14 @@ jobs:
           path: ./all-builds
         
       - name: 📂 List downloaded artifacts (debug)
-        run: find ./all-builds -type f -ls
+        run: find ./all-builds -maxdepth 1 -type f -ls
         
       - name: 🌸 Get latest release
         id: get_latest
         uses: actions/github-script@v6
         with:
           script: |
-            const { data: release } = await github.repos.getLatestRelease({
+            const { data: release } = await github.rest.repos.getLatestRelease({
               owner: context.repo.owner,
               repo: context.repo.repo
             });
