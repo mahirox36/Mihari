@@ -1,8 +1,10 @@
 name: Build and Release Mihari
+# on:
+#   push:
+#     tags:
+#       - 'v*' 
 on:
-  push:
-    tags:
-      - 'v*' 
+  workflow_dispatch
 permissions:
   contents: write 
 jobs:
