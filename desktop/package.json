@@ -92,7 +92,7 @@
     "extraResources": [
       {
         "from": "../server/dist",
-        "to": "backend",
+        "to": "Mihari backend",
         "filter": [
           "**/*"
         ]
