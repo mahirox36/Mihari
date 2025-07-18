@@ -5,17 +5,14 @@ import {
   Menu,
   X,
   Github,
-  Download,
   Info,
   HelpCircle,
-  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState(null);
 
   // Scroll effect for navbar background
   useEffect(() => {

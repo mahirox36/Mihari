@@ -4,30 +4,20 @@ import React, { useState, useEffect, ReactNode } from "react";
 import {
   Download,
   Star,
-  Users,
-  Shield,
   Zap,
   Heart,
-  ChevronRight,
   Play,
   Check,
   ArrowRight,
-  Smartphone,
-  Globe,
-  Lock,
   LinkIcon,
-  Music,
   Video,
   Folder,
-  Clock,
   Moon,
-  Sun,
   Clipboard,
   Settings,
   Bell,
   ExternalLink,
 } from "lucide-react";
-import Link from "next/link";
 
 // Reusable Hero Component
 
