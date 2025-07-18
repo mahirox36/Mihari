@@ -15,7 +15,7 @@ import fsSync from "fs";
 import kill from "tree-kill";
 import { promisify } from "util";
 import semver from "semver";
-import os from "os"
+import os from "os";
 
 const localVersion = app.getVersion();
 async function ensureExe(filename: string, folder: string) {
@@ -43,7 +43,9 @@ async function ensureExe(filename: string, folder: string) {
 let backendName = "Mihari backend";
 
 (async () => {
-  backendName = await ensureExe("Mihari backend", "./server/dist");
+  if (app.isPackaged) {
+    backendName = await ensureExe("Mihari backend", "./server/dist");
+  }
 })();
 
 const killAsync = promisify(kill);
@@ -602,7 +604,7 @@ ipcMain.handle("is-update-available", async () => {
     return {
       updateAvailable: false,
       localVersion,
-      latestVersion:"1.0.0"
+      latestVersion: "1.0.0",
     };
   }
 });
