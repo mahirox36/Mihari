@@ -18,35 +18,9 @@ import semver from "semver";
 import os from "os";
 
 const localVersion = app.getVersion();
-async function ensureExe(filename: string, folder: string) {
-  const fullPath = path.join(folder, filename);
 
-  if (os.platform() === "win32" && !filename.toLowerCase().endsWith(".exe")) {
-    const newFilename = filename + ".exe";
-    const newFullPath = path.join(folder, newFilename);
-
-    try {
-      // Rename the file on disk
-      await fs.rename(fullPath, newFullPath);
-      console.log(`Renamed "${filename}" to "${newFilename}"`);
-      return newFilename;
-    } catch (err: any) {
-      console.error("Error while renaming:", err);
-      throw err;
-    }
-  }
-
-  // If not Windows or already has .exe, just return as is
-  return filename;
-}
 
 let backendName = os.platform() === "win32" ? "Mihari backend.exe" : "Mihari backend";
-
-// (async () => {
-//   if (app.isPackaged) {
-//     backendName = await ensureExe("Mihari backend", "./server/dist");
-//   }
-// })();
 
 const killAsync = promisify(kill);
 
