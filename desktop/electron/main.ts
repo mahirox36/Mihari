@@ -40,13 +40,13 @@ async function ensureExe(filename: string, folder: string) {
   return filename;
 }
 
-let backendName = "Mihari backend";
+let backendName = os.platform() === "win32" ? "Mihari backend.exe" : "Mihari backend";
 
-(async () => {
-  if (app.isPackaged) {
-    backendName = await ensureExe("Mihari backend", "./server/dist");
-  }
-})();
+// (async () => {
+//   if (app.isPackaged) {
+//     backendName = await ensureExe("Mihari backend", "./server/dist");
+//   }
+// })();
 
 const killAsync = promisify(kill);
 
