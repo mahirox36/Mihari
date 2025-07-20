@@ -310,6 +310,20 @@ export default function MihariLandingPage() {
       platform: "Beta Tester",
     },
     {
+      name: "Anas",
+      rating: 5,
+      text: "Good app.",
+      avatar: (
+        <img
+          src="anas.jpg"
+          className="object-cover w-full h-full"
+          loading="lazy"
+          alt="Anas"
+        />
+      ),
+      platform: "Beta Tester",
+    },
+    {
       name: "Kasane Teto",
       rating: 5,
       text: "TeTeTeTeTeteto TeTeTeTeTeteto Teto Kasane Teto Teto Kasane Teto TeTeTeTeTeteto TeTeTeTeTeteto Teto Kasane Teto Teto Kasane Teto",
