@@ -315,7 +315,7 @@ export default function MihariLandingPage() {
       text: "Good app.",
       avatar: (
         <img
-          src="anas.jpg"
+          src="anas.webm"
           className="object-cover w-full h-full"
           loading="lazy"
           alt="Anas"
