@@ -552,7 +552,7 @@ export default function MihariLandingPage() {
             </a>
           </div>
 
-          <p className="text-blue -100 text-sm mt-6">
+          <p className="text-blue-100 text-sm mt-6">
             Windows only • Mac & Linux coming in final release • MIT License
           </p>
         </div>
