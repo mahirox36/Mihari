@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import {
-  Menu,
-  X,
-  Github,
-  Info,
-  HelpCircle,
-} from "lucide-react";
+import { Menu, X, Github, Info, HelpCircle } from "lucide-react";
 import Link from "next/link";
 
 export default function Navbar() {
@@ -114,6 +108,7 @@ export default function Navbar() {
                     ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700"
                     : "bg-white text-indigo-600 hover:bg-gray-50"
                 }`}
+                aria-label="Download Button"
               >
                 Download Now
               </button>
@@ -123,6 +118,7 @@ export default function Navbar() {
             <div className="md:hidden">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Hamburger Menu"
                 className={`p-2 rounded-xl transition-all duration-300 ${
                   isScrolled
                     ? "text-gray-700 hover:bg-gray-100"
@@ -170,37 +166,16 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="pt-4 border-t border-gray-200">
-              <button className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-3 rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all duration-300">
-                Get Started
+              <button
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-3 rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition-all duration-300"
+                aria-label="Download Button"
+              >
+                Download now
               </button>
             </div>
           </div>
         </div>
       </nav>
-
-      <style jsx>{`
-        @keyframes slideInFromTop {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideInFromLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-      `}</style>
     </>
   );
 }

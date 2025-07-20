@@ -190,9 +190,9 @@ export const TestimonialCard = ({
   avatar,
   platform,
 }: TestimonialCardProbe) => (
-  <div className="bg-gray-50 p-8 rounded-2xl hover:shadow-lg transition-shadow duration-300">
+  <div className="bg-white p-6 rounded-2xl hover:shadow-lg transition-shadow duration-300 min-w-[350px] max-w-[350px] flex-shrink-0 shadow-md">
     <div className="flex items-center mb-4">
-      <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold mr-4 overflow-hidden shadow-lg">
+      <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold mr-4 overflow-hidden shadow-lg flex-shrink-0">
         {avatar}
       </div>
       <div>
@@ -205,7 +205,7 @@ export const TestimonialCard = ({
         </div>
       </div>
     </div>
-    <p className="text-gray-600 italic">"{text}"</p>
+    <p className="text-gray-600 italic text-sm leading-relaxed">"{text}"</p>
   </div>
 );
 
@@ -271,14 +271,42 @@ export default function MihariLandingPage() {
       name: "Hans",
       rating: 5,
       text: "This app is peak! I always used to struggle with downloading videos from well‑known sites, but with Mihari I don’t struggle anymore. With just three simple clicks, I can download playlists in any codec I like—and in the best quality too. It’s a total game changer!",
-      avatar: <img src="hans.jpg" className="object-cover w-full h-full" />,
+      avatar: (
+        <img
+          src="hans.jpg"
+          className="object-cover w-full h-full"
+          loading="lazy"
+          alt="Hans"
+        />
+      ),
       platform: "Beta Tester",
     },
     {
       name: "Mr Meroz",
       rating: 5,
       text: "The app is excellent, there are no ads, and it doesn’t force you to download lower quality like other apps or websites. It really helped me a lot in downloading all clips and videos in high quality, and it doesn’t require any subscription. Thank you to the developer for providing a solution to this widespread problem. My honest rating for the app is 10/10, and I highly recommend it, it will be super useful for you!",
-      avatar: <img src="meroz.png" className="object-cover w-full h-full" />,
+      avatar: (
+        <img
+          src="meroz.png"
+          className="object-cover w-full h-full"
+          loading="lazy"
+          alt="Meroz"
+        />
+      ),
+      platform: "Beta Tester",
+    },
+    {
+      name: "Shadow",
+      rating: 5,
+      text: "I'm so happy to use this app, it's incredibly fast and simple, even your grandma can use it!",
+      avatar: (
+        <img
+          src="shadow.jpg"
+          className="object-cover w-full h-full"
+          loading="lazy"
+          alt="Shadow"
+        />
+      ),
       platform: "Beta Tester",
     },
     {
@@ -289,6 +317,8 @@ export default function MihariLandingPage() {
         <img
           src="https://art.ngfiles.com/images/6685000/6685273_2001833_pinklemone_untitled-6685273.87f99f8e621c38718d0b5777453c30d4.webp?f1747002441"
           className="object-cover w-full h-full"
+          loading="lazy"
+          alt="Teto"
         />
       ),
       platform: "Fuck Miku",
@@ -310,7 +340,7 @@ export default function MihariLandingPage() {
         primaryCTA="Download Beta (Windows)"
         secondaryCTA="View on GitHub"
         stats={stats}
-        backgroundGradient="from-pink-50 via-purple-50 to-indigo-100"
+        backgroundGradient="from-blue-50 via-teal-50 to-indigo-100"
       />
 
       {/* Features Section */}
@@ -355,9 +385,8 @@ export default function MihariLandingPage() {
           </div>
 
           <div className="relative max-w-5xl mx-auto">
-            {/* Desktop App Mockup */}
             <div className="overflow-hidden rounded-2xl shadow-2xl inline-block">
-              <img src="app.png" alt="App" className="block w-full h-auto" />
+              <img src="app.png" alt="App" className="block w-full h-auto" loading="lazy" />
             </div>
 
             {/* Feature Highlights */}
@@ -406,17 +435,24 @@ export default function MihariLandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <TestimonialCard
-                key={index}
-                name={testimonial.name}
-                rating={testimonial.rating}
-                text={testimonial.text}
-                avatar={testimonial.avatar}
-                platform={testimonial.platform}
-              />
-            ))}
+          <div className="relative overflow-hidden group ">
+            <div
+              className="flex gap-6 animate-marquee group-hover:paused"
+              style={{
+                width: `${testimonials.length * 2 * 368}px`,
+              }}
+            >
+              {testimonials.concat(testimonials).map((testimonial, index) => (
+                <TestimonialCard
+                  key={index}
+                  name={testimonial.name}
+                  rating={testimonial.rating}
+                  text={testimonial.text}
+                  avatar={testimonial.avatar}
+                  platform={testimonial.platform}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -475,7 +511,7 @@ export default function MihariLandingPage() {
           <h2 className="text-4xl font-bold text-white mb-6">
             Ready to Download with Style? 🌸
           </h2>
-          <p className="text-xl text-pink-100 mb-8">
+          <p className="text-xl text-blue-100 mb-8">
             Join the beta testers who are already loving Mihari's cute vibes and
             powerful features!
           </p>
@@ -485,7 +521,7 @@ export default function MihariLandingPage() {
               href="https://github.com/mahirox36/Mihari/releases/latest"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white text-pink-600 px-8 py-4 rounded-2xl font-semibold hover:bg-gray-50 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
+              className="bg-white text-cyan-600 px-8 py-4 rounded-2xl font-semibold hover:bg-gray-50 transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center justify-center space-x-2"
             >
               <Download className="w-5 h-5" />
               <span>Download Mihari-Setup.exe</span>
@@ -502,7 +538,7 @@ export default function MihariLandingPage() {
             </a>
           </div>
 
-          <p className="text-pink-100 text-sm mt-6">
+          <p className="text-blue -100 text-sm mt-6">
             Windows only • Mac & Linux coming in final release • MIT License
           </p>
         </div>
