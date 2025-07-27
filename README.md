@@ -52,7 +52,16 @@ With its intuitive interface and cute vibes, it’s your perfect companion for d
 
 ---
 
-## 💖 License
+## 💖 Licenses for Mihari Components
 
-This project is licensed under the MIT License.  
-Use it, modify it, share it — **Mihari** loves making friends!
+Mihari is a multi-part project with different licenses for each component.  
+Here’s a quick overview of the licenses used:
+
+| Component              | Path                                                                    | License |
+| ---------------------- | ----------------------------------------------------------------------- | ------- |
+| Desktop app (Electron) | [Mihari/desktop](https://github.com/mahirox36/Mihari/tree/main/desktop) | GPLv3   |
+| Web frontend           | [Mihari/web](https://github.com/mahirox36/Mihari/tree/main/web)         | AGPLv3  |
+| Server backend         | [Mihari/server](https://github.com/mahirox36/Mihari/tree/main/server)   | AGPLv3  |
+| AsyncYT                | [Async](https://github.com/mahirox36/AsyncYT)                           | MIT     |
+
+See each component's LICENSE file for full details.
