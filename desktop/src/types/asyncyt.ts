@@ -1,3 +1,15 @@
+import { AudioCodec, Preset, VideoCodec } from "./enums";
+
+export type FFmpegProgress = {
+  frame: number;
+  fps: number;
+  bitrate: string;
+  total_size: number;
+  out_time_us: number;
+  speed: string;
+  progress: string;
+};
+
 export type DownloadProgress = {
   id: string;
   url: string;
@@ -8,12 +20,20 @@ export type DownloadProgress = {
   speed: number;
   eta: number;
   percentage: number;
+  ffmpeg_progress: FFmpegProgress;
 };
 
 export type StartupResponse = {
-  type: "error" | "complete" | "progress" | "ping" | "info_id" | "info_data" | "cancelled";
+  type:
+    | "error"
+    | "complete"
+    | "progress"
+    | "ping"
+    | "info_id"
+    | "info_data"
+    | "cancelled";
   data?: SetupProgress; // only in progress
-  error?: string
+  error?: string;
 };
 
 export type DownloadFileProgress = {
@@ -69,6 +89,17 @@ export type HealthResponse = {
   error?: string;
 };
 
+export type FFmpegConfig = {
+  video_codec: VideoCodec;
+  video_bitrate?: string | null;
+  crf?: number | null;
+  preset: Preset;
+  audio_codec: AudioCodec;
+  audio_bitrate?: number | null;
+  audio_sample_rate?: number | null;
+  no_codec_compatibility_error: boolean;
+};
+
 export type DownloadConfig = {
   output_path: string;
   quality?: string;
@@ -89,6 +120,7 @@ export type DownloadConfig = {
   retries?: number;
   fragment_retries?: number;
   custom_options?: Record<string, any>;
+  ffmpeg_config: FFmpegConfig;
 };
 
 export type DownloadRequest = {
@@ -130,7 +162,6 @@ export type Message =
   | MessageComplete
   | MessageError
   | MessagePing;
-
 
 export type HealthStatus = {
   status: string;

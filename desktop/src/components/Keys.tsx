@@ -5,7 +5,7 @@ interface SwitchProbe {
   name: string;
   property: boolean;
   setProperty: React.Dispatch<React.SetStateAction<boolean>>;
-  disabled?: boolean
+  disabled?: boolean;
 }
 
 interface ButtonProps {
@@ -18,7 +18,12 @@ interface ButtonProps {
   setProperty: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export function Switch({ name, property, setProperty, disabled = false }: SwitchProbe) {
+export function Switch({
+  name,
+  property,
+  setProperty,
+  disabled = false,
+}: SwitchProbe) {
   return (
     <div className="flex items-center gap-3">
       <span className="flex-1 text-sm font-medium text-[var(--switch-text)] dark:text-[var(--dark-switch-text)] select-none">
@@ -26,7 +31,7 @@ export function Switch({ name, property, setProperty, disabled = false }: Switch
       </span>
       <button
         onClick={() => setProperty(!property)}
-        disabled ={disabled}
+        disabled={disabled}
         className={`
       relative w-12 h-6 flex-shrink-0 rounded-full transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--focus-ring)]
       ${
@@ -95,9 +100,7 @@ export function GridedButton({
     >
       <Icon className="w-10 h-10" />
       {name}
-      <h2 className="text-sm font-medium h-7">
-        {description}
-      </h2>
+      <h2 className="text-sm font-medium h-7">{description}</h2>
     </button>
   );
 }

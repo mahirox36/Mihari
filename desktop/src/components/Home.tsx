@@ -30,6 +30,7 @@ import {
 } from "../types/asyncyt";
 import toast from "react-hot-toast";
 import { AdvanceSidebar } from "./AdvanceSidebar";
+import { AudioCodec, Preset, VideoCodec } from "../types/enums";
 
 interface HomeProp {
   autoPaste: boolean;
@@ -125,6 +126,15 @@ export function Home({
 
   // Advance Sidebar
   const [isOpen, setIsOpen] = useState(false);
+  const [videoCodec, setVideoCodec] = useState(VideoCodec.COPY);
+  const [videoBitrate, setVideoBitrate] = useState<null | string>(null);
+  const [crf, setCrf] = useState<null | number>(null);
+  const [preset, setPreset] = useState(Preset.MEDIUM);
+  const [audioCodec, setAudioCodec] = useState(AudioCodec.COPY);
+  const [audioBitrate, setAudioBitrate] = useState<null | number>(null);
+  const [audioSampleRate, setAudioSampleRate] = useState<null | number>(null);
+  const [noCodecCompatibilityError, setNoCodecCompatibilityError] =
+    useState(true);
   const [writeSubs, setWriteSubs] = useState(false);
   const [subtitleLang, setSubtitleLang] = useState("en");
   const [writeThumbnail, setWriteThumbnail] = useState(false);
@@ -173,7 +183,7 @@ export function Home({
   function validateUrl(url: string) {
     if (!url || typeof url !== "string")
       return { isValid: false, error: "input is not string" };
- 
+
     try {
       const urlObj = new URL(url);
 
@@ -238,7 +248,18 @@ export function Home({
       retries,
       fragment_retries: fragmentRetries,
       custom_options: customOptions ? JSON.parse(customOptions) : {},
+      ffmpeg_config: {
+        video_codec: videoCodec,
+        video_bitrate: videoBitrate,
+        crf: crf,
+        preset: preset,
+        audio_codec: audioCodec,
+        audio_bitrate: audioBitrate,
+        audio_sample_rate: audioSampleRate,
+        no_codec_compatibility_error: noCodecCompatibilityError,
+      },
     };
+    console.log(config);
     const requestData: DownloadRequest = {
       url: finalUrl,
       config,
@@ -339,6 +360,15 @@ export function Home({
               speed: 0,
               eta: 0,
               percentage: 0,
+              ffmpeg_progress: {
+                frame: 0,
+                fps: 0,
+                bitrate: "",
+                total_size: 0,
+                out_time_us: 0,
+                speed: "",
+                progress: "",
+              },
             });
             break;
 
@@ -353,6 +383,15 @@ export function Home({
               speed: 0,
               eta: 0,
               percentage: 0,
+              ffmpeg_progress: {
+                frame: 0,
+                fps: 0,
+                bitrate: "",
+                total_size: 0,
+                out_time_us: 0,
+                speed: "",
+                progress: "",
+              },
             });
             console.log(progress);
             break;
@@ -598,6 +637,22 @@ export function Home({
         setFragmentRetries={setFragmentRetries}
         customOptions={customOptions}
         setCustomOptions={setCustomOptions}
+        videoCodec={videoCodec}
+        setVideoCodec={setVideoCodec}
+        videoBitrate={videoBitrate}
+        setVideoBitrate={setVideoBitrate}
+        crf={crf}
+        setCrf={setCrf}
+        preset={preset}
+        setPreset={setPreset}
+        audioCodec={audioCodec}
+        setAudioCodec={setAudioCodec}
+        audioBitrate={audioBitrate}
+        setAudioBitrate={setAudioBitrate}
+        audioSampleRate={audioSampleRate}
+        setAudioSampleRate={setAudioSampleRate}
+        noCodecCompatibilityError={noCodecCompatibilityError}
+        setNoCodecCompatibilityError={setNoCodecCompatibilityError}
       />
       <ul className="flex flex-col gap-4">
         {progress.map((item) => (

@@ -24,7 +24,7 @@ export function Switch({
             <span className="text-sm font-semibold text-white/90 group-hover:text-white transition-colors">
               {name}
             </span>
-            <span className="text-xs text-white/60 group-hover:text-white/70 transition-colors">
+            <span className="flex-initial w-44 text-xs text-white/60 group-hover:text-white/70 transition-colors">
               {description}
             </span>
           </div>
@@ -114,7 +114,7 @@ export function NumberInput({
   icon?: any;
 }) {
   return (
-    <div className="group relative p-4 rounded-2xl bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm border border-white/10 hover:border-cyan-400/30 transition-all duration-300">
+    <div className="group relative overflow-visible p-4 rounded-2xl bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm border border-white/10 hover:border-cyan-400/30 transition-all duration-300">
       <div className="flex items-center gap-3 mb-2">
         {Icon && (
           <Icon className="w-4 h-4 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
