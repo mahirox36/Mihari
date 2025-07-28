@@ -269,7 +269,7 @@ function createWindow() {
       allowRunningInsecureContent: false,
     },
   });
-  app.setAppUserModelId("online.mahirou.mihari");
+  app.setAppUserModelId("online.mahirou.mihari.dashboard");
 
   win.setMenuBarVisibility(false);
 
