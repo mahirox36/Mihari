@@ -23,7 +23,7 @@ from rich.logging import RichHandler
 from rich.theme import Theme
 
 from asyncyt import (
-    Downloader,
+    AsyncYT,
     DownloadRequest,
     SearchRequest,
     PlaylistRequest,
@@ -43,7 +43,7 @@ from asyncyt.utils import get_unique_filename
 from libs.Models import Downloads, Users, init as _db_init, close as _db_close
 from libs.basemodels import GetSettings, SaveSettings
 
-downloader: Downloader = Downloader()
+downloader: AsyncYT = AsyncYT()
 HEARTBEAT_INTERVAL = 15
 
 
@@ -432,8 +432,8 @@ async def websocket_download(websocket: WebSocket):
             filename = await download_task
             
             # Handle file renaming only if we have video info
-            if data and data.title:
-                file = Path(filename)
+            if data and data.title and request.config:
+                file = Path(request.config.output_path) / Path(filename)
                 title = re.sub(r'[\\/:"*?<>|]', "_", data.title)
                 new_file = get_unique_filename(file, title)
                 try:
