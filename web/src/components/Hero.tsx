@@ -15,8 +15,9 @@ import {
   Moon,
   Clipboard,
   Settings,
-  Bell,
   ExternalLink,
+  UserCog,
+  Bell,
 } from "lucide-react";
 
 // Reusable Hero Component
@@ -258,10 +259,10 @@ export default function MihariLandingPage() {
       color: "from-purple-500 to-indigo-500",
     },
     {
-      icon: Moon,
-      title: "Beautiful Themes",
+      icon: Bell,
+      title: "System Tray Actions",
       description:
-        "Light mode for sunny days, dark mode for cozy nights. Built with React + TypeScript for smooth experience.",
+        "Access key actions right from your system tray — open your downloads folder or instantly paste & download files!",
       color: "from-gray-700 to-gray-900",
     },
   ];
@@ -335,7 +336,7 @@ export default function MihariLandingPage() {
           alt="Teto"
         />
       ),
-      platform: "Fuck Miku",
+      platform: "Professional Miku Hater",
     },
   ];
 
@@ -400,7 +401,12 @@ export default function MihariLandingPage() {
 
           <div className="relative max-w-5xl mx-auto">
             <div className="overflow-hidden rounded-2xl shadow-2xl inline-block">
-              <img src="app.png" alt="App" className="block w-full h-auto" loading="lazy" />
+              <img
+                src="app.png"
+                alt="App"
+                className="block w-full h-auto"
+                loading="lazy"
+              />
             </div>
 
             {/* Feature Highlights */}
@@ -495,12 +501,12 @@ export default function MihariLandingPage() {
             </div>
 
             <div className="bg-white rounded-xl p-6 shadow-lg text-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Bell className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <UserCog className="w-6 h-6 text-white" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-2">System Tray</h3>
+              <h3 className="font-bold text-gray-900 mb-2">Custom Profiles</h3>
               <p className="text-gray-600 text-sm">
-                Quick access from your system tray with instant actions
+                Save and load your favorite settings via profiles in one click
               </p>
             </div>
 
