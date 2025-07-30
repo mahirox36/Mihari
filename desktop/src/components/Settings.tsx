@@ -7,9 +7,48 @@ import {
   Play,
   FolderOpen,
   X,
+  Laptop2,
+  Bell,
+  MinimizeIcon,
 } from "lucide-react";
 import { api } from "../api";
 import { Dropdown } from "./Keys";
+
+interface TooltipButtonProps {
+  icon: any;
+  label: string;
+  category: string;
+  activeCategory: string;
+  setActiveCategory: React.Dispatch<React.SetStateAction<string>>;
+}
+const Button: React.FC<TooltipButtonProps> = ({
+  icon: IconComponent,
+  label,
+  category,
+  activeCategory,
+  setActiveCategory,
+}) => {
+  return (
+    <button
+      onClick={() => setActiveCategory(category)}
+      className={`group relative flex items-center gap-2 p-2 rounded-lg transition-all duration-200 ${
+        activeCategory === category
+          ? "bg-blue-500 text-white"
+          : "hover:bg-gray-300 dark:hover:bg-gray-700"
+      }`}
+    >
+      <IconComponent className="w-5 h-5" />
+      <span
+        className="absolute left-full top-1/2 -translate-y-1/2 ml-2 p-2 bg-gray-800 text-white text-sm rounded z-10 whitespace-nowrap 
+  invisible opacity-0 pointer-events-none 
+  group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto 
+  transition-opacity duration-200"
+      >
+        {label}
+      </span>
+    </button>
+  );
+};
 
 interface SettingsProp {
   autoPaste: boolean;
@@ -24,6 +63,8 @@ interface SettingsProp {
   setTheme: React.Dispatch<any>;
   onDownload: string;
   setOnDownload: React.Dispatch<React.SetStateAction<string>>;
+  closeToTray: boolean;
+  setCloseToTray: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function Settings({
@@ -39,9 +80,12 @@ export function Settings({
   setOnDownload,
   showNotification,
   setShowNotification,
+  closeToTray,
+  setCloseToTray,
 }: SettingsProp) {
   const [error, setError] = useState(null);
   const [version, setVersion] = useState("vNull");
+  const [activeCategory, setActiveCategory] = useState("appearance");
 
   useEffect(() => {
     const fetchVersion = async () => {
@@ -72,7 +116,7 @@ export function Settings({
   }
   async function save(name: string, property: any) {
     const SaveSettings: saveSettings = {
-      key: name.toLowerCase().replace(" ", "_"),
+      key: name.toLowerCase().replace(/\s+/g, "_"),
       value: property,
     };
     await api.post("/setting", SaveSettings);
@@ -166,7 +210,7 @@ export function Settings({
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-8">
+    <div className="max-w-3xl mx-auto p-6 space-y-8">
       {/* Header */}
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -178,121 +222,177 @@ export function Settings({
       </div>
 
       {/* Settings List */}
-      <div
-        className="space-y-0 border border-gray-700 dark:border-gray-200 rounded-xl p-6 py-2"
-      >
-        <SettingItem
-          icon={Info}
-          title="Theme"
-          description="Choose your preferred appearance"
-        >
-          <Dropdown
-            placeholder="System"
-            value={theme}
-            items={[
-              { label: "System", value: "system" },
-              { label: "Light Mode", value: "light" },
-              { label: "Dark Mode", value: "dark" },
-            ]}
-            onSelect={(value) => setTheme(value)}
+      <div className="space-y-0 border border-gray-700 dark:border-gray-200 rounded-xl py-2 pl-1 pr-6 flex flex-row">
+        <div className="w-12 pt-2 pl-1 space-y-2 mr-6 border-r border-gray-700 dark:border-gray-200">
+          <Button
+            icon={Laptop2}
+            label="Appearance & Behavior"
+            category="appearance"
+            activeCategory={activeCategory}
+            setActiveCategory={setActiveCategory}
           />
-        </SettingItem>
-
-        <SettingItem
-          icon={Clipboard}
-          title="Auto Paste"
-          description="Auto paste copied links into the URL box when the app starts"
-        >
-          <Toggle
-            enabled={autoPaste}
-            onChange={() => saveAndSet("Auto Paste", autoPaste, setAutoPaste)}
+          <Button
+            icon={Download}
+            label="Downloads"
+            category="downloads"
+            activeCategory={activeCategory}
+            setActiveCategory={setActiveCategory}
           />
-        </SettingItem>
-
-        <SettingItem
-          icon={Download}
-          title="Auto Download"
-          description="Automatically start downloads when pasted via button"
-        >
-          <Toggle
-            enabled={autoDownload}
-            onChange={() =>
-              saveAndSet("Auto Download", autoDownload, setAutoDownload)
-            }
-          />
-        </SettingItem>
-
-        <SettingItem
-          icon={Download}
-          title="Show Notification"
-          description="Shows a Notification after Downloading if the app is not focused"
-        >
-          <Toggle
-            enabled={showNotification}
-            onChange={() =>
-              saveAndSet(
-                "Show Notification",
-                showNotification,
-                setShowNotification
-              )
-            }
-          />
-        </SettingItem>
-
-        <SettingItem
-          icon={Download}
-          title="On Download"
-          description="What to do after download completes"
-        >
-          <Dropdown
-            placeholder="Nothing"
-            value={onDownload}
-            items={[
-              {
-                label: "Nothing",
-                value: "nothing",
-                onClick() {
-                  save("on_download", "nothing");
-                },
-              },
-              {
-                label: "Play it",
-                value: "play",
-                icon: Play,
-                onClick() {
-                  save("on_download", "play");
-                },
-              },
-              {
-                label: "Show in Folder",
-                value: "open_folder",
-                icon: FolderOpen,
-                onClick() {
-                  save("on_download", "open_folder");
-                },
-              },
-            ]}
-            onSelect={(value) => setOnDownload(value)}
-          />
-        </SettingItem>
-
-        <SettingItem
-          icon={Folder}
-          title="Download Path"
-          description="Choose where downloads are saved"
-        >
-          <div className="flex items-center gap-2">
-            <div className="px-3 py-2 text-sm border border-gray-600 dark:border-gray-300 rounded-lg min-w-48 max-w-64 truncate text-gray-700 dark:text-gray-300">
-              {downloadPath || "No path selected"}
-            </div>
-            <button
-              onClick={selectOutputPath}
-              className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          {/* <Button
+            icon={Bell}
+            label="Notifications"
+            category="notifications"
+            activeCategory={activeCategory}
+            setActiveCategory={setActiveCategory}
+          /> */}
+          {/* <Button
+            icon={MinimizeIcon}
+            label="App Behavior"
+            category="behavior"
+            activeCategory={activeCategory}
+            setActiveCategory={setActiveCategory}
+          /> */}
+        </div>
+        <div className="flex-1">
+          {activeCategory === "appearance" && (
+            <SettingItem
+              icon={Info}
+              title="Theme"
+              description="Choose your preferred appearance"
             >
-              Browse
-            </button>
-          </div>
-        </SettingItem>
+              <Dropdown
+                placeholder="System"
+                value={theme}
+                items={[
+                  { label: "System", value: "system" },
+                  { label: "Light Mode", value: "light" },
+                  { label: "Dark Mode", value: "dark" },
+                ]}
+                onSelect={(value) => setTheme(value)}
+              />
+            </SettingItem>
+          )}
+
+          {activeCategory === "appearance" && (
+            <>
+              <SettingItem
+                icon={Clipboard}
+                title="Auto Paste"
+                description="Auto paste copied links into the URL box when the app starts"
+              >
+                <Toggle
+                  enabled={autoPaste}
+                  onChange={() =>
+                    saveAndSet("Auto Paste", autoPaste, setAutoPaste)
+                  }
+                />
+              </SettingItem>
+
+              <SettingItem
+                icon={MinimizeIcon}
+                title="Minimize to Tray"
+                description="Minimize the app to the system tray instead of closing it when you press the close button. This lets it keep running in the background."
+              >
+                <Toggle
+                  enabled={closeToTray}
+                  onChange={() =>
+                    saveAndSet("Close to Tray", closeToTray, setCloseToTray)
+                  }
+                />
+              </SettingItem>
+              <SettingItem
+                icon={Bell}
+                title="Show Notification"
+                description="Shows a Notification after Downloading if the app is not focused"
+              >
+                <>
+                  <Toggle
+                    enabled={showNotification}
+                    onChange={() =>
+                      saveAndSet(
+                        "Show Notification",
+                        showNotification,
+                        setShowNotification
+                      )
+                    }
+                  />
+                </>
+              </SettingItem>
+            </>
+          )}
+
+          {activeCategory === "downloads" && (
+            <>
+              <SettingItem
+                icon={Download}
+                title="Auto Download"
+                description="Automatically start downloads when pasted via button"
+              >
+                <Toggle
+                  enabled={autoDownload}
+                  onChange={() =>
+                    saveAndSet("Auto Download", autoDownload, setAutoDownload)
+                  }
+                />
+              </SettingItem>
+
+              <SettingItem
+                icon={Play}
+                title="On Download"
+                description="What to do after download completes"
+              >
+                <Dropdown
+                  placeholder="Nothing"
+                  value={onDownload}
+                  items={[
+                    {
+                      label: "Nothing",
+                      value: "nothing",
+                      onClick() {
+                        save("on_download", "nothing");
+                      },
+                    },
+                    {
+                      label: "Play it",
+                      value: "play",
+                      icon: Play,
+                      onClick() {
+                        save("on_download", "play");
+                      },
+                    },
+                    {
+                      label: "Show in Folder",
+                      value: "open_folder",
+                      icon: FolderOpen,
+                      onClick() {
+                        save("on_download", "open_folder");
+                      },
+                    },
+                  ]}
+                  onSelect={(value) => setOnDownload(value)}
+                />
+              </SettingItem>
+
+              <SettingItem
+                icon={Folder}
+                title="Download Path"
+                description="Choose where downloads are saved"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="px-3 py-2 text-sm border border-gray-600 dark:border-gray-300 rounded-lg min-w-48 max-w-64 truncate text-gray-700 dark:text-gray-300">
+                    {downloadPath || "No path selected"}
+                  </div>
+                  <button
+                    onClick={selectOutputPath}
+                    className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Browse
+                  </button>
+                </div>
+              </SettingItem>
+            </>
+          )}
+        </div>
       </div>
 
       {/* About Section */}

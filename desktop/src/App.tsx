@@ -18,6 +18,7 @@ function App({ theme, setTheme }: AppProp) {
   const [showNotification, setShowNotification] = useState(true);
   const [downloadPath, setDownloadPath] = useState("");
   const [onDownload, setOnDownload] = useState("nothing");
+  const [closeToTray, setCloseToTray] = useState(true);
   const [activePage, setActivePage] = useState("Home");
 
   type settingsFetch = {
@@ -28,6 +29,7 @@ function App({ theme, setTheme }: AppProp) {
       show_notification: boolean;
       download_path: string;
       on_download: string;
+      close_to_tray: boolean;
     };
     error?: string;
   };
@@ -41,6 +43,7 @@ function App({ theme, setTheme }: AppProp) {
         setShowNotification(response.data.value.show_notification);
         setDownloadPath(response.data.value.download_path || "");
         setOnDownload(response.data.value.on_download || "nothing");
+        setCloseToTray(response.data.value.close_to_tray);
       } catch (err: any) {}
     }
     fetchData();
@@ -48,7 +51,7 @@ function App({ theme, setTheme }: AppProp) {
 
   return (
     <div className="flex h-screen flex-col">
-      <Toolbar />
+      <Toolbar closeToTray={closeToTray} />
       <div className="flex h-screen">
         <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
         <Sidebar activePage={activePage} setActivePage={setActivePage} />
@@ -87,6 +90,8 @@ function App({ theme, setTheme }: AppProp) {
                 setOnDownload={setOnDownload}
                 showNotification={showNotification}
                 setShowNotification={setShowNotification}
+                closeToTray={closeToTray}
+                setCloseToTray={setCloseToTray}
               />
             </div>
           </>

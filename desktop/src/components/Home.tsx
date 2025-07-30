@@ -213,7 +213,7 @@ export function Home({
     AutoPaste();
   }, []);
 
-  async function paste() {
+  async function paste(forceDownloaded: boolean = false) {
     const result = await window.api.getPaste();
     if (!result || !result.text) {
       console.error("error in the paste");
@@ -222,7 +222,7 @@ export function Home({
     const validateResult = validateUrl(result.text);
     if (validateResult && validateResult.url) {
       const realUrl = validateResult.url;
-      if (autoDownload) await download(realUrl);
+      if (autoDownload || forceDownloaded) await download(realUrl);
     }
   }
 
@@ -408,6 +408,13 @@ export function Home({
     }
   }
 
+  useEffect(() => {
+    window.api.onDownloadRequest(async () => {
+      console.log("LET'S GO BOYS DOWNLOAD TS");
+      await paste(true);
+    });
+  }, []);
+
   return (
     <div className="flex flex-col space-y-4 p-3">
       <div className="flex justify-between mb-4">
@@ -435,7 +442,7 @@ export function Home({
         />
         <button
           className="flex-initial flex items-center justify-center gap-2 p-3 w-36 rounded-lg shadow-lg transition-colors bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold text-md cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300"
-          onClick={paste}
+          onClick={() => paste()}
         >
           <Clipboard /> Paste Link
         </button>
