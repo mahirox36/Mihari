@@ -37,7 +37,7 @@ function LoadingScreen({ state }: { state: AppState }) {
 
   return (
     <div className="flex h-screen flex-col">
-      <Toolbar />
+      <Toolbar closeToTray={false} />
       <div className="h-screen flex items-center justify-center bg-gradient-to-tr from-cyan-100 via-blue-200 to-indigo-200 dark:from-cyan-950 dark:via-blue-950 dark:to-indigo-950">
         <div className="text-center p-8 max-w-md mx-4">
           <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20 dark:border-gray-700/30">
