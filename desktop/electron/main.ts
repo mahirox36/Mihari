@@ -6,6 +6,8 @@ import {
   ipcMain,
   shell,
   Notification,
+  Tray,
+  Menu,
 } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -19,8 +21,8 @@ import os from "os";
 
 const localVersion = app.getVersion();
 
-
-let backendName = os.platform() === "win32" ? "Mihari backend.exe" : "Mihari backend";
+let backendName =
+  os.platform() === "win32" ? "Mihari backend.exe" : "Mihari backend";
 
 const killAsync = promisify(kill);
 
@@ -43,6 +45,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   : RENDERER_DIST;
 
 let win: BrowserWindow | null;
+let tray: Tray | null = null;
 // let potatoWin: BrowserWindow | null = null;
 let isShuttingDown = false;
 
@@ -272,6 +275,41 @@ function createWindow() {
   app.setAppUserModelId("online.mahirou.mihari.dashboard");
 
   win.setMenuBarVisibility(false);
+  tray = new Tray(path.join(process.env.VITE_PUBLIC, "icon.ico"));
+  const url = "http://localhost:8153/api/v1/settings";
+  let downloads_path: null | string = null;
+  const contextMenu = Menu.buildFromTemplate([
+    { label: "Paste and Download", type: "normal", click: () => {
+      win?.webContents.send("download-request");
+    }},
+    {
+      label: "Open Downloads Folder",
+      type: "normal",
+      click: async () => {
+        if (!downloads_path) {
+          const response = await fetch(url);
+          const settingsFetch: Record<
+            string,
+            Record<string, string>
+          > = await response.json();
+          downloads_path = settingsFetch.value.download_path;
+        }
+        shell.openPath(downloads_path);
+      },
+    },
+    {
+      label: "Quit",
+      type: "normal",
+      click: () => {
+        win?.close();
+      },
+    },
+  ]);
+  tray.setToolTip("Mihari: Media Downloader");
+  tray.setContextMenu(contextMenu);
+  tray.on("click", () => {
+    win?.show();
+  });
 
   const exePath = path.join(
     app.isPackaged
@@ -415,9 +453,11 @@ ipcMain.on("window-maximize", () => {
   else win?.maximize();
 });
 
-ipcMain.on("window-close", () => {
+ipcMain.on("window-close", (_event, closeToTray: boolean) => {
   const win = BrowserWindow.getFocusedWindow();
-  if (win) win.close();
+  console.log(closeToTray)
+  if (win && !closeToTray) win.close();
+  if (win && closeToTray) win.hide();
 });
 
 function showInFolder(filePath: string) {

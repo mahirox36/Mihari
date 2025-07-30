@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld("api", {
   // Specific helpers
   minimize: () => ipcRenderer.send("window-minimize"),
   maximize: () => ipcRenderer.send("window-maximize"),
-  close: () => ipcRenderer.send("window-close"),
+  close: (closeToTray: boolean) => ipcRenderer.send("window-close", closeToTray),
   showInFolder: (filePath: string) =>
     ipcRenderer.invoke("show-in-folder", filePath),
   openFile: (filePath: string) => ipcRenderer.invoke("open-file", filePath),
@@ -29,6 +29,11 @@ contextBridge.exposeInMainWorld("api", {
   isUpdateAvailable: () => ipcRenderer.invoke("is-update-available"),
   onBackendReady: (callback: () => void) => {
     ipcRenderer.on("backend-ready", (_event: IpcRendererEvent) => {
+      callback();
+    });
+  },
+  onDownloadRequest: (callback: () => void) => {
+    ipcRenderer.on("download-request", (_event: IpcRendererEvent) => {
       callback();
     });
   },

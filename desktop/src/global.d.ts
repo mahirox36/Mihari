@@ -5,7 +5,7 @@ declare global {
     api: {
       minimize: () => void;
       maximize: () => void;
-      close: () => void;
+      close: (closeToTray: boolean) => void;
       selectOutputPath: () => {
         success: boolean;
         cancelled?: boolean;
@@ -33,6 +33,7 @@ declare global {
         error?: any;
       };
       onBackendReady: (callback: () => void) => void;
+      onDownloadRequest: (callback: () => void) => void;
       on: (channel: string, callback: (...args: any[]) => void) => void;
       removeListener: (
         channel: string,
