@@ -15,6 +15,7 @@ from fastapi import (
     APIRouter,
 )
 from fastapi.middleware.cors import CORSMiddleware
+from tortoise.contrib.fastapi import register_tortoise
 from pydantic import BaseModel
 import uvicorn
 import uuid
@@ -37,10 +38,10 @@ from asyncyt import (
     Quality,
     AudioFormat,
     VideoFormat,
-    DownloadNotFoundError
+    DownloadNotFoundError,
 )
 from asyncyt.utils import get_unique_filename
-from libs.Models import Downloads, Users, init as _db_init, close as _db_close
+from libs.Models import Downloads, Users
 from libs.basemodels import GetSettings, SaveSettings
 
 downloader: AsyncYT = AsyncYT()
@@ -65,11 +66,7 @@ rich_handler = RichHandler(
     show_time=False,
     show_path=False,
 )
-file_handler = RotatingFileHandler(
-    "logs.log",
-    maxBytes=1 * 1024 * 1024,
-    backupCount=3
-)
+file_handler = RotatingFileHandler("logs.log", maxBytes=1 * 1024 * 1024, backupCount=3)
 file_handler.setLevel(logging.INFO)
 
 formatter = logging.Formatter(
@@ -108,21 +105,13 @@ sys.excepthook = handle_exception
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.info("http://0.0.0.0:8153/api/docs")
-    await _db_init()
-    yield
-    await _db_close()
-
 
 app = FastAPI(
     title="AsyncYT API",
     description="A high-performance async YouTube downloader API for Mihari",
     version="1.0.0",
     docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    lifespan=lifespan,
+    redoc_url="/api/redoc"
 )
 api = APIRouter(prefix="/api/v1")
 
@@ -387,50 +376,54 @@ async def websocket_download(websocket: WebSocket):
     async def process_download(request: DownloadRequest, download_id: str):
         """Process download in background while allowing message handling"""
         nonlocal last_activity
-    
+
         try:
             download = await Downloads.create_download(request.url, request.config)
             last_activity = asyncio.get_event_loop().time()
             await websocket.send_json({"type": "info_id", "id": download_id})
-    
+
             async def ws_progress_callback(progress: DownloadProgress):
                 nonlocal last_activity
                 try:
                     # Ensure progress includes the download ID
                     progress_data = progress.model_dump()
                     progress_data["id"] = download_id
-    
+
                     await websocket.send_json(
                         {"type": "progress", "id": download_id, "data": progress_data}
                     )
                     last_activity = asyncio.get_event_loop().time()
                 except Exception as e:
                     logger.warning(f"Failed to send progress for {download_id}: {e}")
-    
+
             # Handle format configuration
             if request.config and request.config.video_format:
                 request.config.video_format = VideoFormat(request.config.video_format)
             if request.config and request.config.audio_format:
                 request.config.audio_format = AudioFormat(request.config.audio_format)
-    
+
             await download.start_download()
-    
+
             # Run video info retrieval and download concurrently
             info_task = asyncio.create_task(downloader.get_video_info(request.url))
-            download_task = asyncio.create_task(downloader.download(request, ws_progress_callback))
-    
+            download_task = asyncio.create_task(
+                downloader.download(request, ws_progress_callback)
+            )
+
             # Wait for video info first and send it immediately when available
             try:
                 data = await asyncio.wait_for(info_task, timeout=30.0)
-                await websocket.send_json({"type": "info_data", "id": download_id, "data": data.model_dump()})
+                await websocket.send_json(
+                    {"type": "info_data", "id": download_id, "data": data.model_dump()}
+                )
             except Exception as e:
                 logger.warning(f"Failed to get video info for {download_id}: {e}")
                 # If video info fails, we can still continue with download
                 data = None
-    
+
             # Wait for download to complete
             filename = await download_task
-            
+
             # Handle file renaming only if we have video info
             if data and data.title and request.config:
                 file = Path(request.config.output_path) / Path(filename)
@@ -442,7 +435,7 @@ async def websocket_download(websocket: WebSocket):
                     logger.warning(f"Failed to rename file: {e}")
             else:
                 file = Path(filename)
-    
+
             result = DownloadResponse(
                 success=True,
                 message="Download completed successfully",
@@ -450,13 +443,13 @@ async def websocket_download(websocket: WebSocket):
                 video_info=data,
                 id=download_id,
             )
-    
+
             await download.determine_success(result)
-    
+
             # Ensure result includes the download ID
             result_data = result.model_dump()
             result_data["id"] = download_id
-    
+
             if result.success:
                 await websocket.send_json(
                     {"type": "complete", "id": download_id, "data": result_data}
@@ -465,9 +458,9 @@ async def websocket_download(websocket: WebSocket):
                 await websocket.send_json(
                     {"type": "error", "id": download_id, "data": result_data}
                 )
-    
+
             last_activity = asyncio.get_event_loop().time()
-    
+
         except asyncio.CancelledError:
             # Handle cancellation gracefully
             await download.set_canceled()
@@ -479,14 +472,14 @@ async def websocket_download(websocket: WebSocket):
                 }
             )
             raise  # Re-raise to properly handle cancellation
-        
+
         except Exception as e:
             await download.set_failed(str(e))
             await websocket.send_json(
                 {"type": "error", "id": download_id, "data": {"error": str(e)}}
             )
             last_activity = asyncio.get_event_loop().time()
-    
+
         finally:
             # Clean up this download from active downloads
             if download_id in active_downloads:
@@ -687,6 +680,17 @@ async def get_settings():
 
 
 app.include_router(api)
+
+register_tortoise(
+    app,
+    db_url="sqlite://db.sqlite3",
+    modules={"models": ["libs.Models"]},
+    generate_schemas=True,
+    add_exception_handlers=True,
+)
+
+logger.info("http://0.0.0.0:8153/api/docs")
+
 if __name__ == "__main__":
     from main import app
 

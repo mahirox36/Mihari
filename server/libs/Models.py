@@ -24,17 +24,6 @@ def utcnow():
     return datetime.now(timezone.utc)
 
 
-async def init():
-    await Tortoise.init(
-        db_url="sqlite://db.sqlite3", modules={"models": ["libs.Models"]}
-    )
-    await Tortoise.generate_schemas()
-
-
-async def close():
-    await Tortoise.close_connections()
-
-
 class Status(StrEnum):
     QUEUED = auto()
     DOWNLOADING = auto()
@@ -238,9 +227,15 @@ class Downloads(Model):
             "user_id": self.user_id,
             "url": self.url,
             "filename": self.filename,
-            "date_created": self.date_created.isoformat() if self.date_created  else None,
-            "date_started": self.date_started.isoformat() if self.date_started  else None,
-            "date_finished": self.date_finished.isoformat() if self.date_finished  else None,
+            "date_created": (
+                self.date_created.isoformat() if self.date_created else None
+            ),
+            "date_started": (
+                self.date_started.isoformat() if self.date_started else None
+            ),
+            "date_finished": (
+                self.date_finished.isoformat() if self.date_finished else None
+            ),
             "status": self.status,
             "priority": self.priority,
             "error": self.error,
@@ -264,12 +259,12 @@ class Downloads(Model):
                 "eta",
             ]
         )
+
     async def delete(self):
         await super().delete()
         filepath = thumbnailsPath / (str(self.id) + ".jpg")
         if filepath.exists():
             filepath.unlink()
-        
 
 
 class Users(Model):
@@ -280,6 +275,8 @@ class Users(Model):
             "auto_paste": False,
             "auto_download": True,
             "show_notification": True,
+            "close_to_tray": True,
+            "on_download": "nothing",
             "download_path": str(Path.home() / "Videos" / "Mihari"),
         }
     )
