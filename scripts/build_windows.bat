@@ -3,7 +3,7 @@ rmdir /s /q build
 rmdir /s /q dist
 pyinstaller --onefile --noconfirm --clean ^
   --name "Mihari backend" ^
-  --icon "../assets/icon.ico" ^
+  --icon "../assets/icon.icns" ^
   --add-data "libs;libs" ^
   --copy-metadata tortoise-orm ^
   --hidden-import=tortoise.backends.sqlite ^

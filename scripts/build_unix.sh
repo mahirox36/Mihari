@@ -4,7 +4,6 @@ rm -rf build
 m -rf dist
 pyinstaller --onefile --noconfirm --clean \
   --name "Mihari backend" \
-  --icon "../assets/icon.ico" \
   --add-data "libs:libs" \
   --copy-metadata tortoise-orm \
   --hidden-import=tortoise.backends.sqlite \
