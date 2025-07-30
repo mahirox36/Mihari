@@ -1,6 +1,10 @@
 import { X, Minus, Maximize } from "lucide-react";
 
-export function Toolbar({ closeToTray }: { closeToTray: boolean }) {
+interface ToolbarProp {
+  closeToTray: boolean
+}
+
+export function Toolbar({ closeToTray }: ToolbarProp) {
   const BaseButton =
     "size-10 flex items-center justify-center transition-all duration-150 ease-in-ou focus:outline-none";
   return (
