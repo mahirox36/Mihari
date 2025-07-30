@@ -46,7 +46,7 @@ export const HeroSection = ({
 
   return (
     <section
-      className={`relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br ${backgroundGradient}`}
+      className={`relative min-h-screen pt-16 flex items-center justify-center overflow-hidden bg-gradient-to-br ${backgroundGradient}`}
     >
       {/* ✨ Animated Background Blobs ✨ */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
