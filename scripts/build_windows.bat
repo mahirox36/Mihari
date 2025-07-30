@@ -7,7 +7,7 @@ pyinstaller --onefile --noconfirm --clean ^
   --add-data "libs;libs" ^
   --copy-metadata tortoise-orm ^
   --hidden-import=tortoise.backends.sqlite ^
-  --version-file=scripts/version.txt ^
+  --version-file=../scripts/version.txt ^
   main.py
 rmdir /s /q build
 cd ../desktop
