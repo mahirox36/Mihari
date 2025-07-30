@@ -245,19 +245,6 @@ function Root() {
     }
   };
 
-  useEffect(() => {
-    // Skip initialization in development mode
-    if (isDev) {
-      console.log("Development mode: skipping backend initialization");
-      return;
-    }
-    (async () => {
-      const response = await window.api.pythonProcessStatus();
-      if (response.ready) {
-        initializeApp();
-      }
-    })();
-  }, []);
 
   window.api.onBackendReady(async () => {
     if (isDev) {
