@@ -25,9 +25,9 @@ Whether you're saving a single song or downloading an entire playlist, **Mihari*
 - 💻 **Cross‑Platform Magic** — Runs beautifully on **Windows, macOS, and Linux** so you can download anywhere!
 - 📁 **Custom Save Locations** — Save files exactly where you want them.
 - 🔔 **Notifications** — Get an instant alert when your downloads finish.
-- ⚡ **Power Shortcuts** — Navigate faster than ever with built‑in hotkeys _(coming soon!)_.
+- ⚡ **Power Shortcuts** — Navigate faster than ever with built‑in hotkeys.
 - 📂 **On‑Download Actions** — Auto‑play, open folder, or do nothing. Your choice!
-- 🍥 Tray icon with quick actions
+- 🍥 **System Tray** — Access key actions right from your system tray — open your downloads folder or instantly paste & download files!
 
 ---
 
