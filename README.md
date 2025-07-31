@@ -27,15 +27,14 @@ Whether you're saving a single song or downloading an entire playlist, **Mihari*
 - 🔔 **Notifications** — Get an instant alert when your downloads finish.
 - ⚡ **Power Shortcuts** — Navigate faster than ever with built‑in hotkeys _(coming soon!)_.
 - 📂 **On‑Download Actions** — Auto‑play, open folder, or do nothing. Your choice!
+- 🍥 Tray icon with quick actions
 
 ---
 
 ## 🌸 Upcoming Features
 
 - 📂 Drag & drop .txt/.csv with links
-- 🍥 Tray icon with quick actions
-- ⌨️ Shortcuts
-
+- 👤 Custom Profiles: Save and load your favorite settings via profiles in one click
 ---
 
 ## 💡 Why Mihari?
