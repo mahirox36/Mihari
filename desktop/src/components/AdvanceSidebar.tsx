@@ -17,6 +17,7 @@ import {
 import { CustomOptionsInput, NumberInput, Switch, TextInput } from "./inputs";
 import { AudioCodec, Preset, VideoCodec } from "../types/enums";
 import { Dropdown } from "./Keys";
+import { useSettings } from "../hooks/SettingsContext";
 
 interface AdvanceSidebarProp {
   isOpen: boolean;
@@ -115,6 +116,7 @@ export function AdvanceSidebar({
   noCodecCompatibilityError,
   setNoCodecCompatibilityError,
 }: AdvanceSidebarProp) {
+  const { performanceMode } = useSettings();
   async function handleSelectCookiesFile() {
     if (window.api && window.api.selectCookieFile) {
       const result = await window.api.selectCookieFile();
@@ -129,14 +131,16 @@ export function AdvanceSidebar({
       {/* Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 h-full bg-black/20 backdrop-blur-sm transition-opacity duration-300 z-40"
+          className={`fixed inset-0 h-full bg-black/20 ${
+            performanceMode ? "" : "backdrop-blur-sm"
+          } transition-opacity duration-300 z-20`}
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Main sidebar */}
       <div
-        className={`fixed top-10 right-0 w-96 max-w-full bg-gradient-to-br from-slate-900/95 via-blue-900/90 to-indigo-900/95 backdrop-blur-2xl border-l border-white/10 z-50 transform transition-all duration-500 ease-out ${
+        className={`fixed top-10 right-0 w-96 max-w-full bg-gradient-to-br from-slate-900/95 via-blue-900/90 to-indigo-900/95 backdrop-blur-2xl border-l border-white/10 z-30 transform transition-all duration-500 ease-out ${
           isOpen
             ? "translate-x-0 shadow-2xl shadow-black/50"
             : "translate-x-full"

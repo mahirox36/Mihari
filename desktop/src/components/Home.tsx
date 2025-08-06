@@ -31,6 +31,8 @@ import {
 import toast from "react-hot-toast";
 import { AdvanceSidebar } from "./AdvanceSidebar";
 import { AudioCodec, Preset, VideoCodec } from "../types/enums";
+import { useHotkeys } from "../hooks/shortcutManager";
+import Modal from "./Modal";
 
 interface HomeProp {
   autoPaste: boolean;
@@ -146,6 +148,16 @@ export function Home({
   const [retries, setRetries] = useState(3);
   const [fragmentRetries, setFragmentRetries] = useState(3);
   const [customOptions, setCustomOptions] = useState<string>("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useHotkeys([
+    { key: "v", ctrl: true, action: () => paste() },
+    { key: "d", ctrl: true, action: () => download() },
+    { key: "q", ctrl: true, action: () => setOnlySound(!onlyAudio) },
+    { key: "a", ctrl: true, action: () => setIsOpen(!isOpen) },
+    // { key: "x", ctrl: true, action: () => setIsModalOpen(!isModalOpen) },
+    { key: "escape", action: () => setIsModalOpen(false) },
+  ]);
 
   useEffect(() => {
     if (!onlyAudio) setOriginalEmbedSubs(embedSubs);
@@ -223,6 +235,7 @@ export function Home({
     if (validateResult && validateResult.url) {
       const realUrl = validateResult.url;
       if (autoDownload || forceDownloaded) await download(realUrl);
+      else setUrl(realUrl);
     }
   }
 
@@ -312,15 +325,13 @@ export function Home({
 
           case "error":
             const response = msg.data as DownloadResponse;
-            popItem(response.id);
             if (showNotification) {
-              const result = window.api.notify(
+              window.api.notify(
                 "Mihari",
                 `Your Download Got an error: ${response.error}`,
                 `null`,
                 false
               );
-              if (result) break;
             }
             if (
               typeof response.error === "string" &&
@@ -331,7 +342,7 @@ export function Home({
               toast.error(`Download failed 💔\n${response.error}`);
             }
             console.error("Download error:", response.error);
-            popItem(response.id);
+            popItem(msg.id);
             break;
 
           case "ping":
@@ -666,6 +677,11 @@ export function Home({
           <DownloadItem key={item.id} itemProgress={item} cancel={cancel} />
         ))}
       </ul>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <h2 className="text-xl font-bold mb-4">Saved Profiles</h2>
+        <p>Saved Profiles Goes Here BRRRRR</p>
+      </Modal>
     </div>
   );
 }

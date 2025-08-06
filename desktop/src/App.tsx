@@ -6,6 +6,7 @@ import { Settings } from "./components/Settings";
 import { api } from "./api";
 import { Toaster } from "react-hot-toast";
 import { Downloads } from "./components/Downloads";
+import { useHotkeys } from "./hooks/shortcutManager";
 
 interface AppProp {
   theme: any;
@@ -20,6 +21,12 @@ function App({ theme, setTheme }: AppProp) {
   const [onDownload, setOnDownload] = useState("nothing");
   const [closeToTray, setCloseToTray] = useState(true);
   const [activePage, setActivePage] = useState("Home");
+
+  useHotkeys([
+    { key: "1", ctrl: true, action: () => setActivePage("Home") },
+    { key: "2", ctrl: true, action: () => setActivePage("Downloads") },
+    { key: "3", ctrl: true, action: () => setActivePage("Settings") },
+  ]);
 
   type settingsFetch = {
     status: boolean;

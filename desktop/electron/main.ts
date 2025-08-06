@@ -19,6 +19,10 @@ import { promisify } from "util";
 import semver from "semver";
 import os from "os";
 
+
+const MihariDataPath = path.join(app.getPath('appData'), 'Mihari');
+app.setPath('userData', MihariDataPath);
+
 const localVersion = app.getVersion();
 
 let backendName =

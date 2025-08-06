@@ -9,6 +9,7 @@ import {
 } from "./types/asyncyt.ts";
 import { api } from "./api.ts";
 import { Toolbar } from "./components/Toolbar.tsx";
+import { SettingsProvider } from "./hooks/SettingsContext.tsx";
 
 const isDev = import.meta.env.DEV;
 
@@ -307,8 +308,10 @@ class ErrorBoundary extends React.Component<
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <Root />
-    </ErrorBoundary>
+    <SettingsProvider>
+      <ErrorBoundary>
+        <Root />
+      </ErrorBoundary>
+    </SettingsProvider>
   </React.StrictMode>
 );

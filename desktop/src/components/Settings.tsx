@@ -10,9 +10,11 @@ import {
   Laptop2,
   Bell,
   MinimizeIcon,
+  Gauge,
 } from "lucide-react";
 import { api } from "../api";
 import { Dropdown } from "./Keys";
+import { useSettings } from "../hooks/SettingsContext";
 
 interface TooltipButtonProps {
   icon: any;
@@ -86,6 +88,7 @@ export function Settings({
   const [error, setError] = useState(null);
   const [version, setVersion] = useState("vNull");
   const [activeCategory, setActiveCategory] = useState("appearance");
+  const { performanceMode, togglePerformanceMode } = useSettings();
 
   useEffect(() => {
     const fetchVersion = async () => {
@@ -183,15 +186,15 @@ export function Settings({
       relative w-12 h-6 flex-shrink-0 rounded-full transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300
       ${
         enabled
-          ? "bg-gradient-to-r from-cyan-400 to-blue-500 shadow-lg shadow-blue-500/30"
-          : "bg-gray-300 dark:bg-gray-600"
+          ? "bg-gradient-to-r from-[var(--switch-on-from)] via-[var(--switch-on-via)] to-[var(--switch-on-to)] shadow-[var(--switch-shadow)]"
+          : "bg-[var(--switch-off-bg)] dark:bg-[var(--dark-switch-off-bg)]"
       }
       hover:scale-105 active:scale-95
     `}
       >
         <div
           className={`
-        absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md
+        absolute top-0.5 w-5 h-5 bg-[var(--switch-circle-bg)] rounded-full shadow-md
         transition-all duration-300 ease-in-out
         ${enabled ? "left-6" : "left-0.5"}
       `}
@@ -255,22 +258,40 @@ export function Settings({
         </div>
         <div className="flex-1">
           {activeCategory === "appearance" && (
-            <SettingItem
-              icon={Info}
-              title="Theme"
-              description="Choose your preferred appearance"
-            >
-              <Dropdown
-                placeholder="System"
-                value={theme}
-                items={[
-                  { label: "System", value: "system" },
-                  { label: "Light Mode", value: "light" },
-                  { label: "Dark Mode", value: "dark" },
-                ]}
-                onSelect={(value) => setTheme(value)}
-              />
-            </SettingItem>
+            <>
+              <SettingItem
+                icon={Info}
+                title="Theme"
+                description="Choose your preferred appearance"
+              >
+                <Dropdown
+                  placeholder="System"
+                  value={theme}
+                  items={[
+                    { label: "System", value: "system" },
+                    { label: "Light Mode", value: "light" },
+                    { label: "Dark Mode", value: "dark" },
+                  ]}
+                  onSelect={(value) => setTheme(value)}
+                />
+              </SettingItem>
+              <SettingItem
+                icon={Gauge}
+                title="Performance Mode"
+                description="Boost performance by disabling visual effects"
+              >
+                <Toggle
+                  enabled={performanceMode}
+                  onChange={() =>
+                    saveAndSet(
+                      "Performance Mode",
+                      performanceMode,
+                      togglePerformanceMode
+                    )
+                  }
+                />
+              </SettingItem>
+            </>
           )}
 
           {activeCategory === "appearance" && (
