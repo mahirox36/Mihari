@@ -28,6 +28,9 @@ const localVersion = app.getVersion();
 let backendName =
   os.platform() === "win32" ? "Mihari backend.exe" : "Mihari backend";
 
+let icon = os.platform() === "win32" ? "icon.ico" : "icon.png";
+
+
 const killAsync = promisify(kill);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -267,7 +270,7 @@ function createWindow() {
     minHeight: 650,
     frame: false,
     title: "Mihari - Ultimate Video Downloader",
-    icon: path.join(process.env.VITE_PUBLIC, "icon.ico"),
+    icon: path.join(process.env.VITE_PUBLIC, icon),
     webPreferences: {
       preload: path.join(__dirname, "preload.mjs"),
       nodeIntegration: false,
@@ -279,7 +282,7 @@ function createWindow() {
   app.setAppUserModelId("online.mahirou.mihari.dashboard");
 
   win.setMenuBarVisibility(false);
-  tray = new Tray(path.join(process.env.VITE_PUBLIC, "icon.ico"));
+  tray = new Tray(path.join(process.env.VITE_PUBLIC, icon));
   const url = "http://localhost:8153/api/v1/settings";
   let downloads_path: null | string = null;
   const contextMenu = Menu.buildFromTemplate([
@@ -634,7 +637,7 @@ ipcMain.handle(
       const notif = new Notification({
         title,
         body,
-        icon: path.join(process.env.VITE_PUBLIC || __dirname, "icon.ico"),
+        icon: path.join(process.env.VITE_PUBLIC || __dirname, icon),
         actions: buttons
           ? [
               { type: "button", text: "Open file" },
