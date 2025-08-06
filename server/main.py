@@ -39,12 +39,13 @@ from asyncyt import (
     AudioFormat,
     VideoFormat,
     DownloadNotFoundError,
+    FFmpegProcessingError,
 )
 from asyncyt.utils import get_unique_filename
-from libs.Models import Downloads, Users
+from libs.Models import TORTOISE_ORM, Downloads, Update, Users, get_data_path, is_bundled
 from libs.basemodels import GetSettings, SaveSettings
 
-downloader: AsyncYT = AsyncYT()
+downloader: AsyncYT = AsyncYT(get_data_path() / "bin")
 HEARTBEAT_INTERVAL = 15
 
 
@@ -59,14 +60,16 @@ custom_theme = Theme(
 )
 console = Console(force_terminal=True, theme=custom_theme)
 rich_handler = RichHandler(
-    level=logging.INFO,
+    level=logging.DEBUG,
     console=console,
     markup=True,
     rich_tracebacks=True,
     show_time=False,
     show_path=False,
 )
-file_handler = RotatingFileHandler("logs.log", maxBytes=1 * 1024 * 1024, backupCount=3)
+file_handler = RotatingFileHandler(
+    get_data_path() / "logs.log", maxBytes=1 * 1024 * 1024, backupCount=3
+)
 file_handler.setLevel(logging.INFO)
 
 formatter = logging.Formatter(
@@ -98,6 +101,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     logger.critical(
         "Uncaught exception:", exc_info=(exc_type, exc_value, exc_traceback)
     )
+    console.print_exception(show_locals=True)
 
 
 sys.excepthook = handle_exception
@@ -106,12 +110,33 @@ logger = logging.getLogger(__name__)
 
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Updating Database")
+    logger.info(f"sqlite://{str(get_data_path().absolute() / "Mihari.sqlite3")}")
+    logger.info("http://0.0.0.0:8153/api/docs")
+    result = await Update()
+    if result is True:
+        logger.info("Updating Finished")
+    elif result is False:
+        logger.info("No Need for Update")
+    else:
+        logger.warning("Something went wrong while Updating")
+    
+    if not is_bundled():
+        logger.info("initializing AsyncYT.. (In dev mode)")
+        await downloader.setup_binaries()
+        logger.info("Finished initialize AsyncYT.")
+    yield
+
+
 app = FastAPI(
     title="AsyncYT API",
     description="A high-performance async YouTube downloader API for Mihari",
     version="1.0.0",
     docs_url="/api/docs",
-    redoc_url="/api/redoc"
+    redoc_url="/api/redoc",
+    lifespan=lifespan,
 )
 api = APIRouter(prefix="/api/v1")
 
@@ -378,6 +403,8 @@ async def websocket_download(websocket: WebSocket):
         nonlocal last_activity
 
         try:
+            if not request.config:
+                request.config = DownloadConfig()
             download = await Downloads.create_download(request.url, request.config)
             last_activity = asyncio.get_event_loop().time()
             await websocket.send_json({"type": "info_id", "id": download_id})
@@ -403,6 +430,7 @@ async def websocket_download(websocket: WebSocket):
                 request.config.audio_format = AudioFormat(request.config.audio_format)
 
             await download.start_download()
+            
 
             # Run video info retrieval and download concurrently
             info_task = asyncio.create_task(downloader.get_video_info(request.url))
@@ -472,8 +500,18 @@ async def websocket_download(websocket: WebSocket):
                 }
             )
             raise  # Re-raise to properly handle cancellation
-
+        except FFmpegProcessingError as e:
+            console.print_exception(show_locals=True)
+            print(e.cmd)
+            logger.error(e.error_code)
+            logger.error(e.output)
+            await download.set_failed(str(e))
+            await websocket.send_json(
+                {"type": "error", "id": download_id, "data": {"error": str(e)}}
+            )
+            last_activity = asyncio.get_event_loop().time()
         except Exception as e:
+            console.print_exception(show_locals=True)
             await download.set_failed(str(e))
             await websocket.send_json(
                 {"type": "error", "id": download_id, "data": {"error": str(e)}}
@@ -683,13 +721,12 @@ app.include_router(api)
 
 register_tortoise(
     app,
-    db_url="sqlite://db.sqlite3",
-    modules={"models": ["libs.Models"]},
+    config=TORTOISE_ORM,
     generate_schemas=True,
     add_exception_handlers=True,
 )
 
-logger.info("http://0.0.0.0:8153/api/docs")
+
 
 if __name__ == "__main__":
     from main import app

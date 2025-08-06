@@ -1,12 +1,16 @@
 from enum import StrEnum, auto
+import os
 from pathlib import Path
+import sys
 from typing import Dict, Optional, Union, Any
 import aiofiles
 import aiohttp
-from tortoise import Tortoise, fields
+from tortoise import fields
 from tortoise.models import Model
 from datetime import datetime, timedelta, timezone
 from tortoise.transactions import in_transaction
+import __main__
+
 
 from asyncyt import (
     DownloadConfig,
@@ -15,9 +19,49 @@ from asyncyt import (
     PlaylistResponse,
 )
 
+CurrentDir = Path.cwd()
+UPDATE_FLAG_PATH = CurrentDir / "update"
 
-thumbnailsPath = Path("./thumbnails/")
-thumbnailsPath.mkdir(exist_ok=True)
+
+def is_bundled():
+    return getattr(sys, "frozen", False)
+
+
+
+def get_data_path():
+    if is_bundled():
+        if sys.platform == "win32":
+            return Path(str(os.getenv("APPDATA"))) / "Mihari" / "BackendData"
+        # Mac
+        elif sys.platform == "darwin":
+            return Path.home() / "Library" / "Application Support" / "Mihari" / "BackendData"
+        # Linux
+        else:
+            return Path.home() / ".config" / "Mihari" / "BackendData"
+    else:
+        # Dev mode
+        return CurrentDir
+
+
+async def Update():
+    from aerich import Command
+    import libs.Models
+    try:
+        if UPDATE_FLAG_PATH.exists():
+            command = Command(TORTOISE_ORM)
+            await command.init()
+            await command.migrate()
+            await command.upgrade()
+            UPDATE_FLAG_PATH.unlink()
+            return True
+        return False
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return None
+
+
+thumbnailsPath = get_data_path() / "thumbnails"
+thumbnailsPath.mkdir(exist_ok=True, parents=True)
 
 
 def utcnow():
@@ -290,3 +334,16 @@ class Users(Model):
         self.settings = settings
         await self.save(update_fields=["settings"])
         return self.settings
+
+
+TORTOISE_ORM = {
+    "connections": {
+        "default": f"sqlite://{str(get_data_path().absolute() / "Mihari.sqlite3")}"
+    },
+    "apps": {
+        "models": {
+            "models": ["libs.Models", "aerich.models"],
+            "default_connection": "default",
+        }
+    },
+}
