@@ -2,6 +2,7 @@ import asyncio
 from contextlib import asynccontextmanager
 import logging
 from logging.handlers import RotatingFileHandler
+import os
 from pathlib import Path
 import re
 import sys
@@ -22,7 +23,6 @@ import uuid
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.theme import Theme
-
 from asyncyt import (
     AsyncYT,
     DownloadRequest,
@@ -42,8 +42,24 @@ from asyncyt import (
     FFmpegProcessingError,
 )
 from asyncyt.utils import get_unique_filename
-from libs.Models import TORTOISE_ORM, Downloads, Update, Users, get_data_path, is_bundled
-from libs.basemodels import GetSettings, SaveSettings
+from libs.Models import (
+    TORTOISE_ORM,
+    Downloads,
+    Update,
+    Users,
+    decode_presets_from_base64,
+    encode_presets_to_base64,
+    get_data_path,
+    is_bundled,
+)
+from libs.basemodels import (
+    GetSettings,
+    Preset,
+    PresetExport,
+    PresetPath,
+    PresetPath,
+    SaveSettings,
+)
 
 downloader: AsyncYT = AsyncYT(get_data_path() / "bin")
 HEARTBEAT_INTERVAL = 15
@@ -60,7 +76,7 @@ custom_theme = Theme(
 )
 console = Console(force_terminal=True, theme=custom_theme)
 rich_handler = RichHandler(
-    level=logging.DEBUG,
+    level=logging.INFO,
     console=console,
     markup=True,
     rich_tracebacks=True,
@@ -109,7 +125,6 @@ sys.excepthook = handle_exception
 logger = logging.getLogger(__name__)
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Updating Database")
@@ -122,7 +137,7 @@ async def lifespan(app: FastAPI):
         logger.info("No Need for Update")
     else:
         logger.warning("Something went wrong while Updating")
-    
+
     if not is_bundled():
         logger.info("initializing AsyncYT.. (In dev mode)")
         await downloader.setup_binaries()
@@ -430,7 +445,6 @@ async def websocket_download(websocket: WebSocket):
                 request.config.audio_format = AudioFormat(request.config.audio_format)
 
             await download.start_download()
-            
 
             # Run video info retrieval and download concurrently
             info_task = asyncio.create_task(downloader.get_video_info(request.url))
@@ -717,6 +731,162 @@ async def get_settings():
         return {"status": "failed", "error": str(e)}
 
 
+@api.post("/preset", tags=["presets"])
+async def save_preset(request: Preset):
+    try:
+        user, _ = await Users.get_or_create(id=1)
+        presets: list = user.get_setting("presets", [])
+        if not request.uuid:
+            presets.append(
+                {
+                    "uuid": str(uuid.uuid4()),
+                    "name": request.name,
+                    "description": request.description,
+                    "config": request.config,
+                }
+            )
+            await user.set_setting("presets", presets)
+        else:
+            preset = next((p for p in presets if p["uuid"] == request.uuid), None)
+            if not preset:
+                raise HTTPException(404, detail="Preset not found")
+            preset["name"] = request.name
+            preset["description"] = request.description
+            preset["config"] = request.config
+            await user.set_setting("presets", presets)
+
+        return {"status": "success"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(e)
+        return {"status": "failed", "error": str(e)}
+
+
+@api.get("/presets", tags=["presets"])
+async def get_presets():
+    try:
+        user, _ = await Users.get_or_create(id=1)
+        return user.get_setting("presets", [])
+    except Exception as e:
+        logger.error(e)
+        return {"status": "failed", "error": str(e)}
+
+
+@api.delete("/presets/{uuid}", tags=["presets"])
+async def delete_preset(uuid: str):
+    try:
+        user, _ = await Users.get_or_create(id=1)
+        presets: list = user.get_setting("presets", [])
+        new_presets = [p for p in presets if p["uuid"] != uuid]
+        if len(new_presets) == len(presets):
+            raise HTTPException(404, detail="Preset not found")
+        await user.set_setting("presets", new_presets)
+        return {"status": "success"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(e)
+        return {"status": "failed", "error": str(e)}
+
+
+@api.post("/presets/export", tags=["presets"])
+async def export_preset(payload: PresetExport):
+    uuid_ = payload.uuid
+    path = payload.path
+    try:
+        user, _ = await Users.get_or_create(id=1)
+        presets = user.get_setting("presets", [])
+        preset = next((p for p in presets if p["uuid"] == uuid_), None)
+        if not preset:
+            raise HTTPException(404, "Preset not found")
+
+        encoded = encode_presets_to_base64(preset)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(encoded)
+        return {"status": "success", "message": f"Preset exported to {path}"}
+    except Exception as e:
+        logger.error(e)
+        return {"status": "failed", "error": str(e)}
+
+
+@api.post("/presets/import", tags=["presets"])
+async def import_preset(payload: PresetPath):
+    path = payload.path
+
+    try:
+        if not os.path.exists(path):
+            raise HTTPException(404, "File not found")
+
+        with open(path, "r", encoding="utf-8") as f:
+            encoded = f.read()
+
+        data = decode_presets_from_base64(encoded)
+
+        # Helper to validate preset structure
+        def validate_preset(preset):
+            required_keys = {"uuid", "name", "description", "config"}
+            if not isinstance(preset, dict):
+                raise HTTPException(400, "Invalid preset format")
+            if not required_keys.issubset(preset.keys()):
+                raise HTTPException(400, "Preset missing required fields")
+
+        user, _ = await Users.get_or_create(id=1)
+        presets = user.get_setting("presets", [])
+
+        if isinstance(data, dict):
+            # Single preset import
+            validate_preset(data)
+            existing = next((p for p in presets if p["uuid"] == data["uuid"]), None)
+            if existing:
+                existing.update(data)
+            else:
+                presets.append(data)
+            msg = f"{data["name"]} Preset imported"
+        elif isinstance(data, list):
+            # Multiple presets import
+            for preset in data:
+                validate_preset(preset)
+                existing = next(
+                    (p for p in presets if p["uuid"] == preset["uuid"]), None
+                )
+                if existing:
+                    existing.update(preset)
+                else:
+                    presets.append(preset)
+            msg = f"{len(data)} Presets imported"
+        else:
+            raise HTTPException(
+                400, "File data must be a preset object or list of presets"
+            )
+
+        await user.set_setting("presets", presets)
+        return {"status": "success", "message": msg}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(e)
+        return {"status": "failed", "error": str(e)}
+
+
+@api.post("/presets/export/all", tags=["presets"])
+async def export_all_presets(payload: PresetPath):
+    path = payload.path
+
+    try:
+        user, _ = await Users.get_or_create(id=1)
+        presets = user.get_setting("presets", [])
+        encoded = encode_presets_to_base64(presets)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(encoded)
+        return {"status": "success", "message": f"All presets exported to {path}"}
+    except Exception as e:
+        logger.error(e)
+        return {"status": "failed", "error": str(e)}
+
+
 app.include_router(api)
 
 register_tortoise(
@@ -725,7 +895,6 @@ register_tortoise(
     generate_schemas=True,
     add_exception_handlers=True,
 )
-
 
 
 if __name__ == "__main__":

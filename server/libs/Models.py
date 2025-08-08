@@ -1,4 +1,6 @@
+import base64
 from enum import StrEnum, auto
+import json
 import os
 from pathlib import Path
 import sys
@@ -26,7 +28,13 @@ UPDATE_FLAG_PATH = CurrentDir / "update"
 def is_bundled():
     return getattr(sys, "frozen", False)
 
+def encode_presets_to_base64(presets):
+    json_data = json.dumps(presets)
+    return base64.b64encode(json_data.encode("utf-8")).decode("utf-8")
 
+def decode_presets_from_base64(data_str):
+    decoded_bytes = base64.b64decode(data_str)
+    return json.loads(decoded_bytes)
 
 def get_data_path():
     if is_bundled():
