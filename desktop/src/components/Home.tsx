@@ -453,6 +453,7 @@ export function Home({
     if (config.embed_thumbnail !== undefined)
       setEmbedThumbnail(config.embed_thumbnail);
     if (config.quality) setQuality(config.quality);
+    if (config.quality === "best") setQuality("Best");
     if (config.video_format) setFormat(config.video_format.toUpperCase());
     if (config.audio_format) setFormatAudio(config.audio_format.toUpperCase());
     if (config.ffmpeg_config) {
