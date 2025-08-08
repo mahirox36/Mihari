@@ -10,7 +10,7 @@ Whether you're saving a single song or downloading an entire playlist, **Mihari*
 
 ---
 
-## ✨ Features (Beta Release)
+## ✨ Features
 
 - 🎬 **Universal Video Support** — Download from thousands of platforms via `yt-dlp`.
 - ♾️ **Unlimited Downloads** — No caps, no restrictions. Download freely!
@@ -28,13 +28,8 @@ Whether you're saving a single song or downloading an entire playlist, **Mihari*
 - ⚡ **Power Shortcuts** — Navigate faster than ever with built‑in hotkeys.
 - 📂 **On‑Download Actions** — Auto‑play, open folder, or do nothing. Your choice!
 - 🍥 **System Tray** — Access key actions right from your system tray — open your downloads folder or instantly paste & download files!
+- 💾 **Custom Presets** — Save, load, export, and import your favorite download settings in a single click. Perfect for switching between setups effortlessly
 
----
-
-## 🌸 Upcoming Features
-
-- 📂 Drag & drop .txt/.csv with links
-- 👤 Custom Profiles: Save and load your favorite settings via profiles in one click
 ---
 
 ## 💡 Why Mihari?
