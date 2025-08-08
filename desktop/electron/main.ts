@@ -18,10 +18,17 @@ import kill from "tree-kill";
 import { promisify } from "util";
 import semver from "semver";
 import os from "os";
+import axios from "axios";
 
+const MihariDataPath = path.join(app.getPath("appData"), "Mihari");
+app.setPath("userData", MihariDataPath);
 
-const MihariDataPath = path.join(app.getPath('appData'), 'Mihari');
-app.setPath('userData', MihariDataPath);
+export const api = axios.create({
+  baseURL: "http://localhost:8153/api/v1",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
 const localVersion = app.getVersion();
 
@@ -29,7 +36,6 @@ let backendName =
   os.platform() === "win32" ? "Mihari backend.exe" : "Mihari backend";
 
 let icon = os.platform() === "win32" ? "icon.ico" : "icon.png";
-
 
 const killAsync = promisify(kill);
 
@@ -53,6 +59,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 
 let win: BrowserWindow | null;
 let tray: Tray | null = null;
+let filePath: string | null = null;
 // let potatoWin: BrowserWindow | null = null;
 let isShuttingDown = false;
 
@@ -263,6 +270,9 @@ async function killPythonProcess(): Promise<void> {
 }
 
 function createWindow() {
+  const gotTheLock = app.requestSingleInstanceLock();
+  if (!gotTheLock) app.quit();
+  app.setAppUserModelId("online.mahirou.mihari.dashboard");
   win = new BrowserWindow({
     width: 1200,
     height: 850,
@@ -279,16 +289,19 @@ function createWindow() {
       allowRunningInsecureContent: false,
     },
   });
-  app.setAppUserModelId("online.mahirou.mihari.dashboard");
 
   win.setMenuBarVisibility(false);
   tray = new Tray(path.join(process.env.VITE_PUBLIC, icon));
   const url = "http://localhost:8153/api/v1/settings";
   let downloads_path: null | string = null;
   const contextMenu = Menu.buildFromTemplate([
-    { label: "Paste and Download", type: "normal", click: () => {
-      win?.webContents.send("download-request");
-    }},
+    {
+      label: "Paste and Download",
+      type: "normal",
+      click: () => {
+        win?.webContents.send("download-request");
+      },
+    },
     {
       label: "Open Downloads Folder",
       type: "normal",
@@ -378,6 +391,19 @@ function createWindow() {
   win.on("closed", () => {
     win = null;
   });
+
+  app.on("second-instance", (_event, argv, _workingDirectory) => {
+    if (!win) {
+      return;
+    }
+    if (win.isMinimized()) win.restore();
+    win.focus();
+
+    const filePath = argv.find((arg) => arg.endsWith(".mhrp"));
+    if (filePath) {
+      // process
+    }
+  });
 }
 
 // Graceful shutdown handlers
@@ -462,7 +488,7 @@ ipcMain.on("window-maximize", () => {
 
 ipcMain.on("window-close", (_event, closeToTray: boolean) => {
   const win = BrowserWindow.getFocusedWindow();
-  console.log(closeToTray)
+  console.log(closeToTray);
   if (win && !closeToTray) win.close();
   if (win && closeToTray) win.hide();
 });
@@ -505,6 +531,17 @@ ipcMain.handle("open-file", async (_event, filePath: string) => {
 });
 
 ipcMain.handle("get-version", () => localVersion);
+
+ipcMain.handle("handle-file", async (_event, file: string | null) => {
+  let imported_file: string;
+  if (file === null) {
+    if (!filePath) return { status: "not found" };
+    imported_file = filePath;
+    filePath = null;
+  } else imported_file = file;
+
+  return (await api.post("/presets/import", { path: imported_file })).data;
+});
 
 ipcMain.on("open-external", (_event, url) => {
   shell.openExternal(url);
@@ -585,6 +622,69 @@ ipcMain.handle("select-cookie-file", async () => {
     return { success: true, path: selectedFile };
   } catch (error: any) {
     console.error("Cookie file selection failed:", error);
+    return { success: false, error: error?.message || "Unknown error." };
+  }
+});
+
+ipcMain.handle("select-mhrp-file", async () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (!win) {
+    return { success: false, error: "No active window found." };
+  }
+
+  try {
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      properties: ["openFile", "multiSelections"],
+      title: "Select Mihari Preset File",
+      buttonLabel: "Select File",
+      filters: [
+        { name: "Mihari Preset", extensions: ["mhrp"] },
+      ],
+      defaultPath: app.getPath("downloads"),
+    });
+
+    if (canceled) {
+      return { success: false, cancelled: true };
+    }
+
+    const selectedFile = filePaths;
+    if (!selectedFile) {
+      return { success: false, error: "No file selected." };
+    }
+
+    return { success: true, paths: selectedFile };
+  } catch (error: any) {
+    console.error("Mihari Preset file selection failed:", error);
+    return { success: false, error: error?.message || "Unknown error." };
+  }
+});
+
+ipcMain.handle("save-mhrp-file", async (_event, name: string) => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (!win) {
+    return { success: false, error: "No active window found." };
+  }
+
+  try {
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      title: "Save Mihari Preset File",
+      buttonLabel: "Save",
+      filters: [{ name: "Mihari Preset", extensions: ["mhrp"] }],
+      defaultPath: app.getPath("downloads") + `/${name}.mhrp`,
+    });
+
+    if (canceled) {
+      return { success: false, cancelled: true };
+    }
+
+    const selectedFile = filePath;
+    if (!selectedFile) {
+      return { success: false, error: "No file selected." };
+    }
+
+    return { success: true, path: selectedFile };
+  } catch (error: any) {
+    console.error("Mihari Preset file selection failed:", error);
     return { success: false, error: error?.message || "Unknown error." };
   }
 });

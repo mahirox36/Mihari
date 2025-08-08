@@ -1,5 +1,6 @@
 import { LucideProps } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface SwitchProbe {
   name: string;
@@ -279,6 +280,7 @@ export function Dropdown({
       ) : (
         <button
           ref={triggerRef}
+          type="button"
           onClick={() => !disabled && setOpen(!open)}
           disabled={disabled}
           className={`
@@ -342,7 +344,7 @@ export function Dropdown({
           )}
 
           <div
-            className="py-1 overflow-y-auto"
+            className="py-1 overflow-y-auto custom-scrollbar"
             style={{
               maxHeight: searchable ? `calc(${maxHeight} - 60px)` : maxHeight,
             }}
@@ -358,6 +360,7 @@ export function Dropdown({
                     <div className="my-1 border-t border-slate-200 dark:border-slate-600" />
                   ) : (
                     <button
+                      type="button"
                       onClick={() => handleSelect(item)}
                       disabled={item.disabled}
                       className={`

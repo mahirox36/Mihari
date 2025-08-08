@@ -171,3 +171,17 @@ export type HealthStatus = {
   binaries_path?: string;
   error?: string;
 };
+
+export type LoadedPreset = {
+  uuid: string;
+  name: string;
+  description: string;
+  config: DownloadConfig;
+};
+
+export type SavedPreset = {
+  uuid: string | null;
+  name: string;
+  description: string;
+  config: DownloadConfig;
+};

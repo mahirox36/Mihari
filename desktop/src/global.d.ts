@@ -18,6 +18,18 @@ declare global {
         error?: string;
         path?: string;
       };
+      selectMihariPresetFile: () => {
+        success: boolean;
+        cancelled?: boolean;
+        error?: string;
+        paths?: string[];
+      };
+      saveMihariPresetFile: (name: string) => {
+        success: boolean;
+        cancelled?: boolean;
+        error?: string;
+        path?: string;
+      };
       showInFolder: (filePath: string) => {
         success: boolean;
         filePath?: string;
@@ -43,6 +55,7 @@ declare global {
       notify: (title: string, body: string, filePath: string, buttons: boolean) => boolean;
       openExternal: (url: string) => null;
       getVersion: () => string;
+      handleFile: (file: string | null) => Record<string, any>;
       pythonProcessStatus: () => {
         running: boolean;
         ready: boolean;

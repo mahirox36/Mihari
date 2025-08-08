@@ -20,11 +20,14 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("show-in-folder", filePath),
   openFile: (filePath: string) => ipcRenderer.invoke("open-file", filePath),
   getVersion: () => ipcRenderer.invoke("get-version"),
+  handleFile: (file: string | null) => ipcRenderer.invoke("handle-file", file),
   notify: (title: string, body: string, filePath: string, buttons: boolean) =>
     ipcRenderer.invoke("show-notif", title, body, filePath, buttons),
   getPaste: () => ipcRenderer.invoke("get-clipboard-text"),
   selectOutputPath: () => ipcRenderer.invoke("select-output-path"),
   selectCookieFile: () => ipcRenderer.invoke("select-cookie-file"),
+  selectMihariPresetFile: () => ipcRenderer.invoke("select-mhrp-file"),
+  saveMihariPresetFile: (name: string) => ipcRenderer.invoke("save-mhrp-file", name),
   pythonProcessStatus: () => ipcRenderer.invoke("python-process-status"),
   isUpdateAvailable: () => ipcRenderer.invoke("is-update-available"),
   onBackendReady: (callback: () => void) => {

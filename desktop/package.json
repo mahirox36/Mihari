@@ -14,6 +14,21 @@
   "build": {
     "appId": "online.mahirou.mihari.dashboard",
     "productName": "Mihari",
+    "protocols": [
+      {
+        "name": "Mihari Protocol",
+        "schemes": ["mihari"]
+      }
+    ],
+    "fileAssociations": [
+      {
+        "ext": "mhrp",
+        "name": "Mihari Protocol File",
+        "description": "Mihari Protocol File",
+        "role": "Editor",
+        "icon": "build/icons/mihari.ico"
+      }
+    ],
     "directories": {
       "output": "dist"
     },
