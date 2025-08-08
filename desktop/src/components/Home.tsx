@@ -856,35 +856,6 @@ export function Home({
           </div>
         </>
       )}
-      <div className="flex justify-between items-center mt-6 gap-4">
-        <button
-          className="group relative px-6 py-3 bg-gradient-to-r from-teal-50 to-blue-100 hover:from-teal-100 hover:to-blue-200 dark:from-cyan-900/20 dark:to-blue-900/20 dark:hover:from-cyan-800/30 dark:hover:to-blue-800/30 border border-teal-200 hover:border-blue-300 dark:border-cyan-700 dark:hover:border-blue-600 text-teal-600 hover:text-blue-700 dark:text-cyan-300 dark:hover:text-blue-300 font-medium rounded-xl flex items-center gap-3 cursor-pointer select-none transition-all duration-200 ease-out transform hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-100 dark:hover:shadow-cyan-900/50 focus:outline-none focus:ring-2 focus:ring-teal-400 dark:focus:ring-cyan-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 focus:scale-[1.02] active:scale-[0.98]"
-          onClick={() => {
-            setModal("save");
-            setIsModalOpen(true);
-          }}
-        >
-          <Save className="w-5 h-5 transition-transform duration-200 group-hover:rotate-12" />
-          <span className="text-sm font-semibold tracking-wide">
-            Save Preset
-          </span>
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-400/0 via-blue-400/5 to-indigo-400/0 dark:from-cyan-400/0 dark:via-blue-400/10 dark:to-indigo-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        </button>
-
-        <button
-          className="group relative px-6 py-3 bg-gradient-to-r from-teal-50 to-blue-100 hover:from-teal-100 hover:to-blue-200 dark:from-cyan-900/20 dark:to-blue-900/20 dark:hover:from-cyan-800/30 dark:hover:to-blue-800/30 border border-teal-200 hover:border-blue-300 dark:border-cyan-700 dark:hover:border-blue-600 text-teal-600 hover:text-blue-700 dark:text-cyan-300 dark:hover:text-blue-300 font-medium rounded-xl flex items-center gap-3 cursor-pointer select-none transition-all duration-200 ease-out transform hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-100 dark:hover:shadow-cyan-900/50 focus:outline-none focus:ring-2 focus:ring-teal-400 dark:focus:ring-cyan-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 focus:scale-[1.02] active:scale-[0.98]"
-          onClick={() => {
-            setModal("load");
-            setIsModalOpen(true);
-          }}
-        >
-          <FolderOpen className="w-5 h-5 transition-transform duration-200 group-hover:rotate-12" />
-          <span className="text-sm font-semibold tracking-wide">
-            Load Preset
-          </span>
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-400/0 via-blue-400/5 to-indigo-400/0 dark:from-cyan-400/0 dark:via-blue-400/10 dark:to-indigo-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-        </button>
-      </div>
       <AdvanceSidebar
         isOpen={isOpen}
         setIsOpen={setIsOpen}
@@ -932,6 +903,36 @@ export function Home({
           <DownloadItem key={item.id} itemProgress={item} cancel={cancel} />
         ))}
       </ul>
+
+      <div className="flex justify-between items-center">
+        <button
+          className="group relative px-6 py-3 bg-gradient-to-r from-teal-50 to-blue-100 hover:from-teal-100 hover:to-blue-200 dark:from-cyan-900/20 dark:to-blue-900/20 dark:hover:from-cyan-800/30 dark:hover:to-blue-800/30 border border-teal-200 hover:border-blue-300 dark:border-cyan-700 dark:hover:border-blue-600 text-teal-600 hover:text-blue-700 dark:text-cyan-300 dark:hover:text-blue-300 font-medium rounded-xl flex items-center gap-3 cursor-pointer select-none transition-all duration-200 ease-out transform hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-100 dark:hover:shadow-cyan-900/50 focus:outline-none focus:ring-2 focus:ring-teal-400 dark:focus:ring-cyan-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 focus:scale-[1.02] active:scale-[0.98]"
+          onClick={() => {
+            setModal("save");
+            setIsModalOpen(true);
+          }}
+        >
+          <Save className="w-5 h-5 transition-transform duration-200 group-hover:rotate-12" />
+          <span className="text-sm font-semibold tracking-wide">
+            Save Preset
+          </span>
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-400/0 via-blue-400/5 to-indigo-400/0 dark:from-cyan-400/0 dark:via-blue-400/10 dark:to-indigo-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        </button>
+
+        <button
+          className="group relative px-6 py-3 bg-gradient-to-r from-teal-50 to-blue-100 hover:from-teal-100 hover:to-blue-200 dark:from-cyan-900/20 dark:to-blue-900/20 dark:hover:from-cyan-800/30 dark:hover:to-blue-800/30 border border-teal-200 hover:border-blue-300 dark:border-cyan-700 dark:hover:border-blue-600 text-teal-600 hover:text-blue-700 dark:text-cyan-300 dark:hover:text-blue-300 font-medium rounded-xl flex items-center gap-3 cursor-pointer select-none transition-all duration-200 ease-out transform hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-100 dark:hover:shadow-cyan-900/50 focus:outline-none focus:ring-2 focus:ring-teal-400 dark:focus:ring-cyan-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 focus:scale-[1.02] active:scale-[0.98]"
+          onClick={() => {
+            setModal("load");
+            setIsModalOpen(true);
+          }}
+        >
+          <FolderOpen className="w-5 h-5 transition-transform duration-200 group-hover:rotate-12" />
+          <span className="text-sm font-semibold tracking-wide">
+            Load Preset
+          </span>
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-teal-400/0 via-blue-400/5 to-indigo-400/0 dark:from-cyan-400/0 dark:via-blue-400/10 dark:to-indigo-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        </button>
+      </div>
 
       <Modal
         modalType={modal}
