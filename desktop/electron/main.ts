@@ -23,6 +23,37 @@ import axios from "axios";
 const MihariDataPath = path.join(app.getPath("appData"), "Mihari");
 app.setPath("userData", MihariDataPath);
 
+let filePath: string | null = null;
+let isRendererReady = false;
+
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+  process.exit(0);
+}
+
+app.on("second-instance", (_event, argv) => {
+  if (win) {
+    if (win.isMinimized()) win.restore();
+    else if (!win.isVisible()) win.show();
+    win.focus();
+  }
+
+  const file = argv.find((arg) => arg.endsWith(".mhrp"));
+  if (file) {
+    filePath = file;
+    if (isRendererReady) {
+      win?.webContents.send("open-file", filePath);
+      filePath = null;
+    }
+  }
+});
+
+app.on("open-file", (event, path) => {
+  event.preventDefault();
+  win?.webContents.send("open-file", path);
+});
+
 export const api = axios.create({
   baseURL: "http://localhost:8153/api/v1",
   headers: {
@@ -59,7 +90,7 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 
 let win: BrowserWindow | null;
 let tray: Tray | null = null;
-let filePath: string | null = null;
+
 // let potatoWin: BrowserWindow | null = null;
 let isShuttingDown = false;
 
@@ -270,8 +301,6 @@ async function killPythonProcess(): Promise<void> {
 }
 
 function createWindow() {
-  const gotTheLock = app.requestSingleInstanceLock();
-  if (!gotTheLock) app.quit();
   app.setAppUserModelId("online.mahirou.mihari.dashboard");
   win = new BrowserWindow({
     width: 1200,
@@ -390,19 +419,6 @@ function createWindow() {
   // Handle window close
   win.on("closed", () => {
     win = null;
-  });
-
-  app.on("second-instance", (_event, argv, _workingDirectory) => {
-    if (!win) {
-      return;
-    }
-    if (win.isMinimized()) win.restore();
-    win.focus();
-
-    const filePath = argv.find((arg) => arg.endsWith(".mhrp"));
-    if (filePath) {
-      // process
-    }
   });
 }
 
@@ -532,15 +548,8 @@ ipcMain.handle("open-file", async (_event, filePath: string) => {
 
 ipcMain.handle("get-version", () => localVersion);
 
-ipcMain.handle("handle-file", async (_event, file: string | null) => {
-  let imported_file: string;
-  if (file === null) {
-    if (!filePath) return { status: "not found" };
-    imported_file = filePath;
-    filePath = null;
-  } else imported_file = file;
-
-  return (await api.post("/presets/import", { path: imported_file })).data;
+ipcMain.handle("handle-file", async (_event, file: string) => {
+  return (await api.post("/presets/import", { path: file })).data;
 });
 
 ipcMain.on("open-external", (_event, url) => {
@@ -637,9 +646,7 @@ ipcMain.handle("select-mhrp-file", async () => {
       properties: ["openFile", "multiSelections"],
       title: "Select Mihari Preset File",
       buttonLabel: "Select File",
-      filters: [
-        { name: "Mihari Preset", extensions: ["mhrp"] },
-      ],
+      filters: [{ name: "Mihari Preset", extensions: ["mhrp"] }],
       defaultPath: app.getPath("downloads"),
     });
 
@@ -793,4 +800,18 @@ ipcMain.handle("restart-python-process", async () => {
   }
 });
 
-app.whenReady().then(createWindow);
+ipcMain.on("renderer-ready", () => {
+  isRendererReady = true;
+  if (filePath) {
+    win?.webContents.send("open-file", filePath);
+    filePath = null;
+  }
+});
+
+app.whenReady().then(() => {
+  createWindow();
+  const launchFile = process.argv.find((arg) => arg.endsWith(".mhrp"));
+  if (launchFile) {
+    filePath = launchFile;
+  }
+});

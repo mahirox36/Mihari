@@ -47,6 +47,7 @@ declare global {
       onBackendReady: (callback: () => void) => void;
       onDownloadRequest: (callback: () => void) => void;
       on: (channel: string, callback: (...args: any[]) => void) => void;
+      send: (channel: string, data?: any) => void;
       removeListener: (
         channel: string,
         callback: (...args: any[]) => void
@@ -65,6 +66,7 @@ declare global {
         localVersion: string;
         latestVersion: string;
       }
+      onOpenFile: (callback: (filePath) => void) => void;
       // openPotatoWindow: () => null;
     };
   }

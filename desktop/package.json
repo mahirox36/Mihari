@@ -1,7 +1,7 @@
 {
   "name": "mihari",
   "private": true,
-  "version": "2.0.0-beta.4",
+  "version": "2.0.0-beta.5",
   "description": "Mihari: Ultimate Video Downloader",
   "type": "module",
   "author": "MahiroX36",
@@ -23,10 +23,10 @@
     "fileAssociations": [
       {
         "ext": "mhrp",
-        "name": "Mihari Protocol File",
-        "description": "Mihari Protocol File",
+        "name": "Mihari Preset File",
+        "description": "Mihari Preset File",
         "role": "Editor",
-        "icon": "build/icons/mihari.ico"
+        "icon": "../assets/mhrp.png"
       }
     ],
     "directories": {

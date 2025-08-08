@@ -8,6 +8,9 @@ contextBridge.exposeInMainWorld("api", {
   on: (channel: string, callback: (...args: any[]) => void) => {
     ipcRenderer.on(channel, (_event, ...args) => callback(...args));
   },
+  send: (channel: string, data?: any) => {
+    ipcRenderer.send(channel, data);
+  },
   // Generic removeListener for any channel
   removeListener: (channel: string, callback: (...args: any[]) => void) => {
     ipcRenderer.removeListener(channel, (_event, ...args) => callback(...args));
@@ -15,7 +18,8 @@ contextBridge.exposeInMainWorld("api", {
   // Specific helpers
   minimize: () => ipcRenderer.send("window-minimize"),
   maximize: () => ipcRenderer.send("window-maximize"),
-  close: (closeToTray: boolean) => ipcRenderer.send("window-close", closeToTray),
+  close: (closeToTray: boolean) =>
+    ipcRenderer.send("window-close", closeToTray),
   showInFolder: (filePath: string) =>
     ipcRenderer.invoke("show-in-folder", filePath),
   openFile: (filePath: string) => ipcRenderer.invoke("open-file", filePath),
@@ -27,7 +31,8 @@ contextBridge.exposeInMainWorld("api", {
   selectOutputPath: () => ipcRenderer.invoke("select-output-path"),
   selectCookieFile: () => ipcRenderer.invoke("select-cookie-file"),
   selectMihariPresetFile: () => ipcRenderer.invoke("select-mhrp-file"),
-  saveMihariPresetFile: (name: string) => ipcRenderer.invoke("save-mhrp-file", name),
+  saveMihariPresetFile: (name: string) =>
+    ipcRenderer.invoke("save-mhrp-file", name),
   pythonProcessStatus: () => ipcRenderer.invoke("python-process-status"),
   isUpdateAvailable: () => ipcRenderer.invoke("is-update-available"),
   onBackendReady: (callback: () => void) => {
@@ -41,5 +46,7 @@ contextBridge.exposeInMainWorld("api", {
     });
   },
   openExternal: (url: string) => ipcRenderer.send("open-external", url),
+  onOpenFile: (callback: any) =>
+    ipcRenderer.on("open-file", (_event, filePath) => callback(filePath)),
   // openPotatoWindow: () => ipcRenderer.send("open-potato-window"),
 });

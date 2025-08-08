@@ -266,30 +266,40 @@ export function Home({
       const res = await api.get("/presets");
       setPresets(res.data);
     })();
+    window.api.send("renderer-ready");
   }, []);
 
-  async function importPreset(startUp: boolean = true) {
-    if (startUp) {
-      const response = window.api.handleFile(null);
-      if (response.status === "success") {
-        toast.success(response.message);
-      } else {
-        toast.error(
-          `Failed to import file: ${response.error || "Unknown error"}`
-        );
+  useEffect(() => {
+    window.api.onOpenFile((filePath: string) => {
+      importPreset(filePath);
+    });
+  }, []);
+
+  async function importPreset(filePath?: string) {
+    if (!filePath) {
+      const response = await window.api.selectMihariPresetFile();
+      if (response.cancelled) {
+        return; // User cancelled the file selection
       }
-      return;
-    }
-    const response = await window.api.selectMihariPresetFile();
-    if (!response.success || !response.paths) {
-      toast.error(
-        `Failed to select preset file: ${response.error || "Unknown error"}`
-      );
-      return;
-    }
-    for (const path of response.paths) {
-      const result = await window.api.handleFile(path);
-      console.log(result);
+      if (!response.success || !response.paths) {
+        toast.error(
+          `Failed to select preset file: ${response.error || "Unknown error"}`
+        );
+        return;
+      }
+      for (const path of response.paths) {
+        const result = await window.api.handleFile(path);
+        console.log(result);
+        if (result.status === "success") {
+          toast.success(result.message);
+        } else {
+          toast.error(
+            `Failed to import file: ${result.error || "Unknown error"}`
+          );
+        }
+      }
+    } else {
+      const result = await window.api.handleFile(filePath);
       if (result.status === "success") {
         toast.success(result.message);
       } else {
@@ -304,6 +314,9 @@ export function Home({
 
   async function exportPreset(name: string, uuid: string) {
     const file = await window.api.saveMihariPresetFile(name);
+    if (file.cancelled) {
+      return; // User cancelled the file selection
+    }
     if (!file || !file.path) {
       toast.error("Failed to select export path for preset");
       return;
@@ -323,6 +336,9 @@ export function Home({
   }
   async function exportAllPresets() {
     const file = await window.api.saveMihariPresetFile("all_presets");
+    if (file.cancelled) {
+      return; // User cancelled the file selection
+    }
     if (!file || !file.path) {
       toast.error("Failed to select export path for all presets");
       return;
@@ -1042,7 +1058,7 @@ export function Home({
               </button>
               <button
                 onClick={async () => {
-                  await importPreset(false);
+                  await importPreset();
                 }}
                 className="flex-1 cursor-pointer flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 font-medium rounded-xl transition-all duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
               >
