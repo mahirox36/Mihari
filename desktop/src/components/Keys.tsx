@@ -1,6 +1,5 @@
 import { LucideProps } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { createPortal } from "react-dom";
 
 interface SwitchProbe {
   name: string;
