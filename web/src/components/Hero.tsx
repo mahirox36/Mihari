@@ -11,13 +11,13 @@ import {
   ArrowRight,
   LinkIcon,
   Video,
-  Folder,
   Moon,
   Clipboard,
   Settings,
   ExternalLink,
-  UserCog,
   Bell,
+  Save,
+  Keyboard,
 } from "lucide-react";
 
 // Reusable Hero Component
@@ -216,7 +216,7 @@ export default function MihariLandingPage() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveFeature((prev) => (prev + 1) % 6);
+      setActiveFeature((prev) => (prev + 1) % 9);
     }, 4000);
 
     return () => clearInterval(interval);
@@ -263,6 +263,28 @@ export default function MihariLandingPage() {
       title: "System Tray Actions",
       description:
         "Access key actions right from your system tray — open your downloads folder or instantly paste & download files!",
+      color: "from-indigo-600 to-blue-500",
+    },
+    {
+      icon: Save,
+      title: "Presets",
+      description:
+        "Save, load, export, and import your favorite download settings in a single click. Perfect for switching between setups effortlessly",
+      color: "from-teal-300 to-cyan-500",
+    },
+    {
+      icon: Keyboard,
+      title: "Keyboard Shortcuts",
+      description:
+        "Navigate Mihari lightning-fast with keyboard shortcuts. Download, Save, Load, Enable only Audi, and more with just a few keystrokes.",
+      color: "from-orange-500 to-red-500",
+    },
+
+    {
+      icon: Moon,
+      title: "Dark mode",
+      description:
+        "Switch between light and dark modes with a single click. Mihari adapts to your style and system preferences.",
       color: "from-gray-700 to-gray-900",
     },
   ];
@@ -298,7 +320,7 @@ export default function MihariLandingPage() {
     },
     {
       name: "Shadow",
-      rating: 5,
+      rating: 4,
       text: "I'm so happy to use this app, it's incredibly fast and simple, even your grandma can use it!",
       avatar: (
         <img
@@ -341,8 +363,8 @@ export default function MihariLandingPage() {
   ];
 
   const stats = [
-    { value: "10+", label: "Downloads" },
-    { value: "5.0", label: "Rating" },
+    { value: "50+", label: "Downloads" },
+    { value: "4.8", label: "Rating" },
     { value: "Beta", label: "Status" },
   ];
 
@@ -478,7 +500,7 @@ export default function MihariLandingPage() {
       </section>
 
       {/* Coming Soon Section */}
-      <section className="py-20 bg-gradient-to-br from-indigo-50 to-teal-50">
+      {/* <section className="py-20 bg-gradient-to-br from-indigo-50 to-teal-50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -523,7 +545,7 @@ export default function MihariLandingPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* Download CTA Section */}
       <section className="py-20 bg-gradient-to-r from-indigo-600 via-blue-500 to-teal-400">
@@ -559,7 +581,7 @@ export default function MihariLandingPage() {
           </div>
 
           <p className="text-blue-100 text-sm mt-6">
-            Windows only • Mac & Linux coming in final release • MIT License
+            Windows only • Mac & Linux coming in final release • GPLv3 License
           </p>
         </div>
       </section>
@@ -639,10 +661,10 @@ export default function MihariLandingPage() {
                 </li>
                 <li>
                   <a
-                    href="https://github.com/mahirox36/Mihari/discussions"
+                    href="https://discord.gg/a85rPNbGhn"
                     className="hover:text-white transition-colors"
                   >
-                    Discussions
+                    Discord Server
                   </a>
                 </li>
                 <li>
@@ -654,8 +676,16 @@ export default function MihariLandingPage() {
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 Mihari. Licensed under MIT License.</p>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-indigo-400 text-sm">
+            <a
+              href="https://github.com/mahirox36/Mihari?tab=readme-ov-file#-licenses-for-mihari-components"
+              className="hover:text-indigo-500 hover:text-base transition-all duration-300"
+              aria-label="Mihari project license details"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              &copy; 2025 Mihari. Licensed under GPLv3 License.
+            </a>
           </div>
         </div>
       </footer>
