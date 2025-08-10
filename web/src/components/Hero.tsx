@@ -20,12 +20,82 @@ import {
   Keyboard,
 } from "lucide-react";
 
-// Reusable Hero Component
+export function DownloadButton() {
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [os, setOs] = useState<string>("Windows");
+
+  useEffect(() => {
+    const detectPlatform = () => {
+      const ua = navigator.userAgent.toLowerCase();
+      let os = "";
+      let arch = "x64"; // Default assumption
+
+      // OS detection
+      if (/windows nt/i.test(ua)) os = "win";
+      else if (/macintosh|mac os x/i.test(ua)) os = "mac";
+      else if (/linux/i.test(ua)) os = "linux";
+      if (os === "win") {
+        setOs("Windows");
+      } else if (os === "mac") {
+        setOs("Mac");
+      } else if (os === "linux") {
+        setOs("Linux");
+      }
+
+      // Architecture detection
+      if (ua.includes("arm") || ua.includes("aarch64")) arch = "arm64";
+
+      // Extension selection
+      let ext = "exe";
+      if (os === "mac") ext = "dmg";
+      else if (os === "linux") ext = "AppImage";
+
+      return { os, arch, ext };
+    };
+
+    const fetchLatestVersion = async () => {
+      try {
+        const response = await fetch(
+          "https://api.github.com/repos/mahirox36/Mihari/releases/latest"
+        );
+        const data = await response.json();
+
+        const { os, arch, ext } = detectPlatform();
+        const version = data.tag_name;
+        const file_version = version.replace("v", "");
+        const filename = `Mihari-Setup-${file_version}-${os}-${arch}.${ext}`;
+        const url = `https://github.com/mahirox36/Mihari/releases/download/${version}/${filename}`;
+        if (os === "Windows") {
+          setDownloadUrl(url);
+        }
+      } catch (error) {
+        console.error("Failed to get latest release:", error);
+      }
+    };
+
+    fetchLatestVersion();
+  }, []);
+
+  return (
+    <a href={downloadUrl || "#"} download>
+      <button
+        className={`group bg-gradient-to-r from-indigo-500 to-teal-400 hover:from-indigo-600 hover:to-teal-500 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl flex items-center space-x-2 ${
+          os === "Windows" ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+        }`}
+      >
+        <Download className="w-5 h-5" />
+        <span>
+          Download For {os} {os === "Windows" ? "(BETA)" : "(Not Available)"}
+        </span>
+        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+      </button>
+    </a>
+  );
+}
 
 interface HeroSectionProbe {
   subtitle: string;
   description: string;
-  primaryCTA: string;
   secondaryCTA: string;
   stats: Array<Record<any, any>>;
   backgroundGradient: string;
@@ -34,7 +104,6 @@ interface HeroSectionProbe {
 export const HeroSection = ({
   subtitle,
   description,
-  primaryCTA,
   secondaryCTA,
   stats,
   backgroundGradient = "from-slate-50 via-blue-50 to-indigo-100",
@@ -109,14 +178,7 @@ export const HeroSection = ({
 
           {/* ✨ CTA Buttons ✨ */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <a href="https://github.com/mahirox36/Mihari/releases/latest">
-              <button className="group cursor-pointer bg-gradient-to-r from-indigo-500 to-teal-400 hover:from-indigo-600 hover:to-teal-500 text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl flex items-center space-x-2">
-                <Download className="w-5 h-5" />
-                <span>{primaryCTA}</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-            </a>
-
+            <DownloadButton />
             {secondaryCTA && (
               <a href="https://github.com/mahirox36/Mihari/">
                 <button className="group cursor-pointer bg-white/90 backdrop-blur-sm hover:bg-white text-gray-700 px-8 py-4 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl flex items-center space-x-2 border border-gray-200">
@@ -358,7 +420,7 @@ export default function MihariLandingPage() {
           alt="Teto"
         />
       ),
-      platform: "Professional Miku Hater",
+      platform: "Miku Hater",
     },
   ];
 
@@ -374,7 +436,6 @@ export default function MihariLandingPage() {
       <HeroSection
         subtitle="Your Adorable Video & Audio Downloader 💖"
         description="Sleek, fast, and super customizable media downloader powered by yt-dlp. Download from anywhere with cute vibes and powerful features! ✨"
-        primaryCTA="Download Beta (Windows)"
         secondaryCTA="View on GitHub"
         stats={stats}
         backgroundGradient="from-blue-50 via-teal-50 to-indigo-100"
