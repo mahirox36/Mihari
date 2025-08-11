@@ -59,13 +59,12 @@ export function DownloadButton() {
           "https://api.github.com/repos/mahirox36/Mihari/releases/latest"
         );
         const data = await response.json();
-
         const { os, arch, ext } = detectPlatform();
         const version = data.tag_name;
         const file_version = version.replace("v", "");
         const filename = `Mihari-Setup-${file_version}-${os}-${arch}.${ext}`;
         const url = `https://github.com/mahirox36/Mihari/releases/download/${version}/${filename}`;
-        if (os === "Windows") {
+        if (os === "win") {
           setDownloadUrl(url);
         }
       } catch (error) {

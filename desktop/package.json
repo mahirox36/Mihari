@@ -4,7 +4,11 @@
   "version": "2.0.0-beta.5",
   "description": "Mihari: Ultimate Video Downloader",
   "type": "module",
-  "author": "MahiroX36",
+  "homepage": "https://mihari.mahirou.online",
+  "author": {
+    "name": "MahiroX36",
+    "email": "mahiroc36@gmail.com"
+  },
   "scripts": {
     "dev": "cd ../server && start python main.py && cd ../desktop && vite",
     "build": "tsc && vite build && electron-builder",
@@ -101,12 +105,23 @@
       "desktop": {
         "Name": "Mihari",
         "Comment": "Your cute media downloader",
-        "Exec": "mihari",
         "Icon": "../assets/icon.png"
       },
       "category": "AudioVideo",
       "synopsis": "Cute and powerful media downloader",
-      "description": "Sleek, fast, and super customizable media downloader powered by AsyncYT. Download from anywhere with cute vibes and powerful features!",
+      "description": "Sleek, fast, and super customizable media downloader powered by AsyncYT. Download from anywhere with cute vibes and powerful features!"
+    },
+    "deb": {
+      "depends": [
+        "ffmpeg"
+      ]
+    },
+    "rpm": {
+      "depends": [
+        "ffmpeg"
+      ]
+    },
+    "pacman": {
       "depends": [
         "ffmpeg"
       ]
