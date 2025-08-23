@@ -67,7 +67,7 @@ const platform = os.platform()
 let backendName =
   platform === "win32" ? "Mihari backend.exe" : "Mihari backend";
 
-let icon = platform === "win32" ? "icon.ico" : platform === "darwin" ? "icon.ico" : "icon.png";
+let icon = platform === "win32" ? "icon.ico" : platform === "darwin" ? "icon.ics" : "icon.png";
 
 const killAsync = promisify(kill);
 
