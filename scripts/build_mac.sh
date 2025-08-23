@@ -26,4 +26,5 @@ touch dist/update
 rm -rf build
 cd ../desktop
 rm -rf dist
+npm ci
 npm run build

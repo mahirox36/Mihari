@@ -62,11 +62,12 @@ export const api = axios.create({
 });
 
 const localVersion = app.getVersion();
+const platform = os.platform()
 
 let backendName =
-  os.platform() === "win32" ? "Mihari backend.exe" : "Mihari backend";
+  platform === "win32" ? "Mihari backend.exe" : "Mihari backend";
 
-let icon = os.platform() === "win32" ? "icon.ico" : "icon.png";
+let icon = platform === "win32" ? "icon.ico" : platform === "darwin" ? "icon.ico" : "icon.png";
 
 const killAsync = promisify(kill);
 
