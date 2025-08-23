@@ -9,6 +9,11 @@ fi
 cd server
 rm -rf build
 rm -rf dist
+if [ ! -d ".venv" ]; then
+  python3 -m venv .venv
+fi
+source .venv/bin/activate
+pip install -r requirements.txt 
 pyinstaller --onefile --noconfirm --clean \
   --name "Mihari backend" \
   --icon "../assets/icon.icns" \

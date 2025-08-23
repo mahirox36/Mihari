@@ -8,3 +8,4 @@ asyncyt
 tortoise-ORM
 aiosqlite
 aerich
+pyinstaller
