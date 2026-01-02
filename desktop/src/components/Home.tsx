@@ -1,3 +1,5 @@
+/* eslint-disable no-case-declarations */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import {
   Clipboard,
@@ -8,7 +10,6 @@ import {
   FileVideo2,
   Film,
   Globe,
-  FileArchive,
   Music,
   Radio,
   Settings2,
@@ -37,7 +38,7 @@ import {
   LoadedPreset,
   SavedPreset,
 } from "../types/asyncyt";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { AdvanceSidebar } from "./AdvanceSidebar";
 import { AudioCodec, Preset, VideoCodec } from "../types/enums";
 import { useHotkeys } from "../hooks/shortcutManager";
@@ -138,8 +139,9 @@ export function Home({
 
   // Advance Sidebar
   const [isOpen, setIsOpen] = useState(false);
-  const [videoCodec, setVideoCodec] = useState(VideoCodec.COPY);
-  const [videoBitrate, setVideoBitrate] = useState<null | string>(null);
+
+  const [videoCodec, setVideoCodec] = useState(VideoCodec.H264);
+  const [videoBitrate, setVideoBitrate] = useState<null | string>("1000k");
   const [crf, setCrf] = useState<null | number>(null);
   const [preset, setPreset] = useState(Preset.MEDIUM);
   const [audioCodec, setAudioCodec] = useState(AudioCodec.COPY);
@@ -166,6 +168,24 @@ export function Home({
   const [presetDescription, setPresetDescription] = useState("");
   const [selectedPreset, setSelectedPreset] = useState("");
   const [presets, setPresets] = useState<Array<LoadedPreset>>([]);
+
+  useEffect(() => {
+    window.api.getVideoCodec().then((codec) => {
+      switch (codec) {
+        case "h264_nvenc":
+          setVideoCodec(VideoCodec.H264_NVENC);
+          break;
+        case "h264_qsv":
+          setVideoCodec(VideoCodec.H264_QSV);
+          break;
+        case "h264_amf":
+          setVideoCodec(VideoCodec.H264_AMF);
+          break;
+        default:
+          setVideoCodec(VideoCodec.H264);
+      }
+    });
+  }, []);
 
   useHotkeys([
     { key: "v", ctrl: true, action: () => paste() },
@@ -201,10 +221,12 @@ export function Home({
 
   useEffect(() => {
     if (!onlyAudio) setOriginalEmbedSubs(embedSubs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [embedSubs]);
 
   useEffect(() => {
     setEmbedSubs(onlyAudio ? false : embedOriginalSubs);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onlyAudio]);
 
   function pushItem(newItem: DownloadProgress) {
@@ -267,6 +289,7 @@ export function Home({
       setPresets(res.data);
     })();
     window.api.send("renderer-ready");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -650,6 +673,7 @@ export function Home({
       console.log("LET'S GO BOYS DOWNLOAD TS");
       await paste(true);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -846,13 +870,13 @@ export function Home({
               property={format}
               setProperty={setFormat}
             />
-            <GridedButton
+            {/* <GridedButton
               name="AVI"
               description="Legacy video format"
               Icon={FileArchive}
               property={format}
               setProperty={setFormat}
-            />
+            /> */}
           </div>
         </>
       )}

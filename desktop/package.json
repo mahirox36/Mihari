@@ -1,7 +1,7 @@
 {
   "name": "mihari",
   "private": true,
-  "version": "2.0.0-beta.5",
+  "version": "2.0.0-beta.6",
   "description": "Mihari: Ultimate Video Downloader",
   "type": "module",
   "homepage": "https://mihari.mahirou.online",
@@ -10,7 +10,7 @@
     "email": "mahiroc36@gmail.com"
   },
   "scripts": {
-    "dev": "cd ../server && start python main.py && cd ../desktop && vite",
+    "dev": "vite",
     "build": "tsc && vite build && electron-builder",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
@@ -168,8 +168,8 @@
     "motion": "^12.23.12",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-hot-toast": "^2.5.2",
     "semver": "^7.7.2",
+    "sonner": "^2.0.7",
     "tailwindcss": "^4.1.8",
     "tree-kill": "^1.2.2"
   },

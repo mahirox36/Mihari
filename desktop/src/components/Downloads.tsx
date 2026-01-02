@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
 import { DownloadConfig } from "../types/asyncyt";
-import { FolderOpen, Trash, Play, Search, Download } from "lucide-react";
+import {
+  FolderOpen,
+  Trash,
+  Play,
+  Search,
+  Download,
+  MoreHorizontal,
+  Copy,
+  Share2,
+  Trash2,
+} from "lucide-react";
 import { api } from "../api";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
+import { Dropdown, DropdownItem } from "./Keys";
 
 interface ItemProp {
   id: number;
@@ -11,6 +22,7 @@ interface ItemProp {
   status: string;
   filepath: string;
   output: string;
+  url: string;
   deleteItem: (id: number) => void;
 }
 
@@ -20,10 +32,75 @@ function Item({
   thumbnail_path,
   output,
   filepath,
+  url,
   deleteItem,
 }: ItemProp) {
   const baseButton =
-    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl shadow-md transition-all font-semibold text-lg select-none dark:shadow-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 hover:shadow-xl";
+    "flex items-center justify-center gap-2 py-2 px-3 rounded-xl shadow-md transition-all font-semibold text-lg select-none dark:shadow-white/20 focus:outline-none focus:ring-2 focus:r|ing-offset-2 hover:shadow-xl";
+
+  const actionItems: DropdownItem[] = [
+    {
+      label: "Download Again",
+      value: "download",
+      icon: Download,
+      onClick: async () => {
+        try {
+          await navigator.clipboard.writeText(url);
+          window.api.send("download-request");
+          toast.success("Media started downloading");
+        } catch {
+          toast.error("Failed to download");
+        }
+      },
+    },
+    {
+      label: "Open in Browser",
+      value: "browser",
+      icon: Copy,
+      onClick: () => {
+        window.api.openExternal(url);
+      },
+    },
+    {
+      label: "Copy Link",
+      value: "copy",
+      icon: Share2,
+
+      onClick: async () => {
+        try {
+          await navigator.clipboard.writeText(url);
+          toast.success("Link copied!");
+        } catch {
+          toast.error("Failed to copy");
+        }
+      },
+    },
+    { divider: true },
+    // {
+    //   label: "Properties",
+    //   value: "properties",
+    //   icon: Info,
+    //   onClick: () => console.log("Archive clicked"),
+    // },
+    {
+      label: "Delete History and File",
+      value: "delete",
+      icon: Trash2,
+      danger: true,
+      onClick: async () => {
+        const response = await window.api.deleteFile(`${output}\\${filepath}`);
+        console.log(`${output}\\${filepath}`)
+        if (response.success) {
+          toast.success("File Deleted successfully.");
+          deleteItem(id);
+        } else {
+          toast.error("File Delation was unsuccessful.");
+          console.log(response.error)
+        }
+        // 
+      },
+    },
+  ];
   return (
     <div
       key={id}
@@ -66,7 +143,9 @@ function Item({
           title="Show in folder"
           className={`${baseButton} bg-gradient-to-br from-indigo-500/0 to-blue-600/0 text-neutral-900 dark:text-neutral-100 focus:ring-teal-400 hover:from-teal-400/95 hover:to-cyan-500/95 hover:shadow-teal-500/40 hover:scale-105`}
           onClick={async () => {
-            const result = await window.api.showInFolder(`${output}/${filepath}`);
+            const result = await window.api.showInFolder(
+              `${output}/${filepath}`
+            );
             console.log(result);
             if (!result.success) {
               toast.error(result.error);
@@ -83,6 +162,19 @@ function Item({
         >
           <Trash />
         </button>
+        <Dropdown
+          trigger={
+            <button
+              title="More"
+              className={`${baseButton} bg-gradient-to-br from-orange-500/0 to-red-600/0 text-neutral-900 dark:text-neutral-100 focus:ring-zinc-400 hover:from-zinc-400/95 hover:to-neutral-500/95 hover:shadow-neutral-500/40 hover:scale-105`}
+            >
+              <MoreHorizontal />
+            </button>
+          }
+          items={actionItems}
+          width="w-54"
+          offsetX={-160}
+        />
       </div>
     </div>
   );
@@ -101,6 +193,7 @@ type HistoryItem = {
   error?: string;
   config: DownloadConfig;
   thumbnail_path?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: Record<string, any>;
 };
 
@@ -155,7 +248,7 @@ export function Downloads({ isActive }: DownloadsProp) {
           className="w-full pl-10 pr-4 py-3 rounded-xl bg-gradient-to-r from-white to-cyan-50 border border-gray-200 dark:border-gray-700 shadow-sm text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-300  transition-all text-black"
         />
       </div>
-      
+
       <div className="min-h-[200px]">
         {filteredItems.length === 0 && searchTerm !== "" ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -181,6 +274,7 @@ export function Downloads({ isActive }: DownloadsProp) {
                 thumbnail_path={item.thumbnail_path}
                 status={item.status}
                 filepath={item.filename}
+                url={item.url}
                 output={item.config.output_path}
                 deleteItem={deleteItem}
               />

@@ -1,5 +1,6 @@
 import { LucideProps } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface SwitchProbe {
   name: string;
@@ -104,8 +105,8 @@ export function GridedButton({
     </button>
   );
 }
-interface DropdownItem {
-  label: React.ReactNode;
+export interface DropdownItem {
+  label?: React.ReactNode;
   value?: string;
   onClick?: () => void;
   disabled?: boolean;
@@ -125,7 +126,9 @@ interface DropdownProps {
   disabled?: boolean;
   variant?: "default" | "button" | "minimal";
   size?: "sm" | "md" | "lg";
-  position?: "left" | "right" | "center";
+  offsetX?: number;
+  offsetY?: number;
+  mousePos?: boolean;
   maxHeight?: string;
   searchable?: boolean;
   closeOnSelect?: boolean;
@@ -145,7 +148,9 @@ export function Dropdown({
   disabled = false,
   variant = "default",
   size = "md",
-  position = "left",
+  offsetX = 0,
+  offsetY = 0,
+  mousePos = false,
   maxHeight = "320px",
   searchable = false,
   closeOnSelect = true,
@@ -157,7 +162,12 @@ export function Dropdown({
 }: DropdownProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [pendingPos, setPendingPos] = useState<{ x: number; y: number } | null>(
+    null
+  );
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   // Filter items based on search
@@ -170,18 +180,23 @@ export function Dropdown({
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+
+      // If the click is inside the trigger/dropdown container OR inside the portal menu, ignore it.
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        (dropdownRef.current && dropdownRef.current.contains(target)) ||
+        (menuRef.current && menuRef.current.contains(target))
       ) {
-        setOpen(false);
-        setSearchTerm("");
+        return;
       }
+
+      // Otherwise close
+      setOpen(false);
+      setSearchTerm("");
     }
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Handle keyboard navigation
@@ -202,6 +217,7 @@ export function Dropdown({
   }, [open]);
 
   const handleSelect = (item: DropdownItem) => {
+    console.log("gg")
     if (item.disabled) return;
 
     if (item.onClick) {
@@ -217,6 +233,52 @@ export function Dropdown({
       setSearchTerm("");
     }
   };
+
+  const handleMouseClick = (e: React.MouseEvent) => {
+    if (disabled) return;
+
+    const rect = triggerRef.current!.getBoundingClientRect();
+
+    const x = mousePos
+      ? e.clientX + window.scrollX + offsetX
+      : rect.left + window.scrollX + offsetX;
+    const y = mousePos
+      ? e.clientY + window.scrollY + offsetY
+      : rect.bottom + window.scrollY + offsetY + 8;
+
+    setPendingPos({ x, y });
+    setOpen(true); // open menu, let useLayoutEffect do the rest
+  };
+
+  useLayoutEffect(() => {
+    if (!open || !menuRef.current || !pendingPos) return;
+
+    const menuRect = menuRef.current.getBoundingClientRect();
+    let top = pendingPos.y;
+    let left = pendingPos.x;
+
+    // Prevent bottom overflow
+    if (top + menuRect.height > window.scrollY + window.innerHeight) {
+      top = mousePos
+        ? window.scrollY + window.innerHeight - menuRect.height - 8
+        : triggerRef.current!.getBoundingClientRect().top +
+          window.scrollY -
+          menuRect.height -
+          8 -
+          offsetY;
+    }
+
+    // Prevent right overflow
+    if (left + menuRect.width > window.scrollX + window.innerWidth) {
+      left = window.scrollX + window.innerWidth - menuRect.width - 8;
+    }
+
+    // Prevent left overflow
+    if (left < 0) left = 8;
+
+    setMenuPosition({ top, left });
+    setPendingPos(null); // done
+  }, [mousePos, offsetY, open, pendingPos]);
 
   // Size classes
   const sizeClasses = {
@@ -247,13 +309,6 @@ export function Dropdown({
     `,
   };
 
-  // Position classes
-  const positionClasses = {
-    left: "left-0",
-    right: "right-0",
-    center: "left-1/2 transform -translate-x-1/2",
-  };
-
   // Width classes
   const getWidthClass = () => {
     if (width === "auto") return "w-auto min-w-48";
@@ -266,21 +321,22 @@ export function Dropdown({
   const selectedItem = items.find((item) => item.value === value);
 
   return (
-    <div className={`relative inline-block ${className}`} ref={dropdownRef}>
+    <div className={`relative ${className}`} ref={dropdownRef}>
       {trigger ? (
-        <div
-          onClick={() => !disabled && setOpen(!open)}
+        <button
+          onClick={handleMouseClick}
           className={`cursor-pointer select-none ${
             disabled ? "opacity-50 cursor-not-allowed" : ""
           }`}
+          ref={triggerRef}
         >
           {trigger}
-        </div>
+        </button>
       ) : (
         <button
           ref={triggerRef}
           type="button"
-          onClick={() => !disabled && setOpen(!open)}
+          onClick={handleMouseClick}
           disabled={disabled}
           className={`
             ${sizeClasses[size]} ${variantClasses[variant]} ${triggerClassName}
@@ -316,53 +372,59 @@ export function Dropdown({
         </button>
       )}
 
-      {open && (
-        <div
-          className={`
-            absolute ${positionClasses[position]} mt-2 ${getWidthClass()}
-            rounded-xl shadow-2xl
-            border border-slate-200 dark:border-slate-600
-            backdrop-blur-sm bg-white/95 dark:bg-slate-800/95
-            ring-1 ring-black/5 dark:ring-white/5
-            z-50 overflow-hidden
-            ${menuClassName}
-          `}
-          style={{ maxHeight }}
-        >
-          {searchable && (
-            <div className="p-3 border-b border-slate-200 dark:border-slate-600">
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white"
-                autoFocus
-              />
-            </div>
-          )}
-
+      {open &&
+        createPortal(
           <div
-            className="py-1 overflow-y-auto custom-scrollbar"
+            className={`
+              fixed mt-0 ${getWidthClass()}
+              rounded-xl shadow-2xl
+              border border-slate-200 dark:border-slate-600
+              backdrop-blur-sm bg-white/95 dark:bg-slate-800/95
+              ring-1 ring-black/5 dark:ring-white/5
+              z-50 overflow-hidden
+              ${menuClassName}
+            `}
             style={{
-              maxHeight: searchable ? `calc(${maxHeight} - 60px)` : maxHeight,
+              maxHeight,
+              top: `${menuPosition.top}px`,
+              left: `${menuPosition.left}px`,
             }}
+            ref={menuRef}
           >
-            {filteredItems.length === 0 ? (
-              <div className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
-                No options found
+            {searchable && (
+              <div className="p-3 border-b border-slate-200 dark:border-slate-600">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                  autoFocus
+                />
               </div>
-            ) : (
-              filteredItems.map((item, index) => (
-                <div key={index}>
-                  {item.divider ? (
-                    <div className="my-1 border-t border-slate-200 dark:border-slate-600" />
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleSelect(item)}
-                      disabled={item.disabled}
-                      className={`
+            )}
+
+            <div
+              className="py-1 overflow-y-auto custom-scrollbar"
+              style={{
+                maxHeight: searchable ? `calc(${maxHeight} - 60px)` : maxHeight,
+              }}
+            >
+              {filteredItems.length === 0 ? (
+                <div className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                  No options found
+                </div>
+              ) : (
+                filteredItems.map((item, index) => (
+                  <div key={index}>
+                    {item.divider ? (
+                      <div className="my-1 border-t border-slate-200 dark:border-slate-600" />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleSelect(item)}
+                        disabled={item.disabled}
+                        className={`
                         w-full text-left px-4 py-2 text-sm flex items-center gap-3
                         transition-all duration-150 ease-in-out
                         ${
@@ -379,32 +441,33 @@ export function Dropdown({
                         }
                         ${itemClassName}
                       `}
-                    >
-                      {item.icon && (
-                        <item.icon className="w-4 h-4 flex-shrink-0" />
-                      )}
-                      <span className="truncate">{item.label}</span>
-                      {item.value === value && (
-                        <svg
-                          className="w-4 h-4 ml-auto flex-shrink-0"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
+                      >
+                        {item.icon && (
+                          <item.icon className="w-4 h-4 flex-shrink-0" />
+                        )}
+                        <span className="truncate">{item.label}</span>
+                        {item.value === value && (
+                          <svg
+                            className="w-4 h-4 ml-auto flex-shrink-0"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

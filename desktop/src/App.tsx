@@ -4,12 +4,14 @@ import { Toolbar } from "./components/Toolbar";
 import { Home } from "./components/Home";
 import { Settings } from "./components/Settings";
 import { api } from "./api";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 import { Downloads } from "./components/Downloads";
 import { useHotkeys } from "./hooks/shortcutManager";
 
 interface AppProp {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   theme: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setTheme: React.Dispatch<any>;
 }
 
@@ -51,7 +53,8 @@ function App({ theme, setTheme }: AppProp) {
         setDownloadPath(response.data.value.download_path || "");
         setOnDownload(response.data.value.on_download || "nothing");
         setCloseToTray(response.data.value.close_to_tray);
-      } catch (err: any) {}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (err: any) { /* empty */ }
     }
     fetchData();
   }, []);
@@ -60,7 +63,7 @@ function App({ theme, setTheme }: AppProp) {
     <div className="flex h-screen flex-col">
       <Toolbar closeToTray={closeToTray} />
       <div className="flex h-screen">
-        <Toaster position="bottom-right" toastOptions={{ duration: 3000 }} />
+        <Toaster position="bottom-right" richColors />
         <Sidebar activePage={activePage} setActivePage={setActivePage} />
         <div
           className="flex-1 bg-gradient-to-tr from-[var(--bg-gradient-from)] via-[var(--bg-gradient-via)] to-[var(--bg-gradient-to)] dark:from-[var(--dark-bg-gradient-from)] dark:via-[var(--dark-bg-gradient-via)] dark:to-[var(--dark-bg-gradient-to)] text-[var(--text)] dark:text-[var(--dark-text)] p-4 

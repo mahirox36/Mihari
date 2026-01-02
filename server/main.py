@@ -40,6 +40,7 @@ from asyncyt import (
     VideoFormat,
     DownloadNotFoundError,
     FFmpegProcessingError,
+    get_unique_path,
 )
 from asyncyt.utils import get_unique_filename
 from libs.Models import (
@@ -449,7 +450,7 @@ async def websocket_download(websocket: WebSocket):
             # Run video info retrieval and download concurrently
             info_task = asyncio.create_task(downloader.get_video_info(request.url))
             download_task = asyncio.create_task(
-                downloader.download(request, ws_progress_callback)
+                downloader.download(request, ws_progress_callback, finalize=False)
             )
 
             # Wait for video info first and send it immediately when available
@@ -466,9 +467,11 @@ async def websocket_download(websocket: WebSocket):
             # Wait for download to complete
             filename = await download_task
 
+            output_path = Path(request.config.output_path)
+            
             # Handle file renaming only if we have video info
             if data and data.title and request.config:
-                file = Path(request.config.output_path) / Path(filename)
+                file = output_path / Path(filename)
                 title = re.sub(r'[\\/:"*?<>|]', "_", data.title)
                 new_file = get_unique_filename(file, title)
                 try:
@@ -477,11 +480,14 @@ async def websocket_download(websocket: WebSocket):
                     logger.warning(f"Failed to rename file: {e}")
             else:
                 file = Path(filename)
+            output_final_file = output_path / get_unique_path(output_path, file.name)
+            await downloader.finalize_download(file.parent, output_path, request.config)
+            
 
             result = DownloadResponse(
                 success=True,
                 message="Download completed successfully",
-                filename=str(file.absolute()),
+                filename=str(output_final_file.absolute()),
                 video_info=data,
                 id=download_id,
             )
@@ -515,7 +521,7 @@ async def websocket_download(websocket: WebSocket):
             )
             raise  # Re-raise to properly handle cancellation
         except FFmpegProcessingError as e:
-            console.print_exception(show_locals=True)
+            console.print_exception()
             print(e.cmd)
             logger.error(e.error_code)
             logger.error(e.output)
@@ -525,7 +531,7 @@ async def websocket_download(websocket: WebSocket):
             )
             last_activity = asyncio.get_event_loop().time()
         except Exception as e:
-            console.print_exception(show_locals=True)
+            console.print_exception()
             await download.set_failed(str(e))
             await websocket.send_json(
                 {"type": "error", "id": download_id, "data": {"error": str(e)}}

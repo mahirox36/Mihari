@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ipcRenderer, contextBridge, IpcRendererEvent } from "electron";
 
 contextBridge.exposeInMainWorld("api", {
@@ -48,5 +50,14 @@ contextBridge.exposeInMainWorld("api", {
   openExternal: (url: string) => ipcRenderer.send("open-external", url),
   onOpenFile: (callback: any) =>
     ipcRenderer.on("open-file", (_event, filePath) => callback(filePath)),
+  getVideoCodec: () => ipcRenderer.invoke("gpu:get-video-codec"),
+  deleteFile: (
+    filePath: string
+  ): Promise<{
+    success: boolean;
+    error?: string | undefined;
+  }> => {
+    return ipcRenderer.invoke("delete-file", filePath);
+  },
   // openPotatoWindow: () => ipcRenderer.send("open-potato-window"),
 });

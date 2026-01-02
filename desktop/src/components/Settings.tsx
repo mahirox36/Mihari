@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import {
   Clipboard,
@@ -127,7 +128,6 @@ export function Settings({
 
   async function selectOutputPath() {
     try {
-      // @ts-ignore - window.api is available in electron context
       const result = await window.api?.selectOutputPath();
       if (result && result.success && !result.cancelled && result.path) {
         setDownloadPath(result.path);

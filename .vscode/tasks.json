@@ -1,0 +1,37 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Backend",
+      "type": "shell",
+      "command": "python main.py",
+      "options": {
+        "cwd": "server"
+      },
+      "group": "none",
+      "problemMatcher": [],
+    },
+    {
+      "label": "Run App",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "desktop"
+      },
+      "group": "none",
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Both",
+      "dependsOn": [
+        "Run Backend",
+        "Run App"
+      ],
+      "dependsOrder": "parallel",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+    }
+  ]
+}

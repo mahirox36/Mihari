@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export {};
 
 declare global {
@@ -53,7 +54,12 @@ declare global {
         callback: (...args: any[]) => void
       ) => void;
       invoke: (channel: string, ...args: any[]) => Promise<any>;
-      notify: (title: string, body: string, filePath: string, buttons: boolean) => boolean;
+      notify: (
+        title: string,
+        body: string,
+        filePath: string,
+        buttons: boolean
+      ) => boolean;
       openExternal: (url: string) => null;
       getVersion: () => string;
       handleFile: (file: string | null) => Record<string, any>;
@@ -65,9 +71,14 @@ declare global {
         updateAvailable: boolean;
         localVersion: string;
         latestVersion: string;
-      }
+      };
       onOpenFile: (callback: (filePath) => void) => void;
       // openPotatoWindow: () => null;
+      getVideoCodec: () => Promise<string>;
+      deleteFile: (filepath) => Promise<{
+        success: boolean;
+        error?: string | undefined;
+      }>;
     };
   }
 }

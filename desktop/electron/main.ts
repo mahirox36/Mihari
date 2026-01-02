@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   app,
   BrowserWindow,
@@ -62,12 +63,17 @@ export const api = axios.create({
 });
 
 const localVersion = app.getVersion();
-const platform = os.platform()
+const platform = os.platform();
 
-let backendName =
+const backendName =
   platform === "win32" ? "Mihari backend.exe" : "Mihari backend";
 
-let icon = platform === "win32" ? "icon.ico" : platform === "darwin" ? "icon.icns" : "icon.png";
+const icon =
+  platform === "win32"
+    ? "icon.ico"
+    : platform === "darwin"
+    ? "icon.icns"
+    : "icon.png";
 
 const killAsync = promisify(kill);
 
@@ -543,9 +549,82 @@ async function openFile(filePath: string) {
   }
 }
 
+async function deleteFile(
+  filePath: string,
+  moveToTrash = true
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!filePath) {
+      return { success: false, error: "No file specified." };
+    }
+
+    if (!fsSync.existsSync(filePath)) {
+      return { success: false, error: "The specified file could not be found" };
+    }
+
+    // Try moving to trash/recycle bin first (preferred)
+    if (moveToTrash && typeof shell.trashItem === "function") {
+      try {
+        // shell.trashItem may return void or a Promise<boolean>; if it resolves consider it successful
+        await shell.trashItem(filePath);
+        return { success: true };
+      } catch (err) {
+        console.warn(
+          "shell.trashItem failed, falling back to permanent delete.",
+          err
+        );
+        try {
+          // Attempt permanent delete immediately since trash failed
+          if (typeof (fs as any).rm === "function") {
+            await (fs as any).rm(filePath, { recursive: true, force: true });
+          } else {
+            const stat = await fs.lstat(filePath);
+            if (stat.isDirectory()) {
+              await fs.rmdir(filePath, { recursive: true } as any);
+            } else {
+              await fs.unlink(filePath);
+            }
+          }
+          return { success: true };
+        } catch (deleteErr: any) {
+          console.error("Permanent delete fallback failed:", deleteErr);
+          return { success: false };
+        }
+      }
+    }
+
+    // Permanent delete (works for files and directories)
+    // Use fs.rm if available, otherwise fall back to unlink/rmdir
+    if (typeof (fs as any).rm === "function") {
+      await (fs as any).rm(filePath, { recursive: true, force: true });
+    } else {
+      const stat = await fs.lstat(filePath);
+      if (stat.isDirectory()) {
+        await fs.rmdir(filePath, { recursive: true } as any);
+      } else {
+        await fs.unlink(filePath);
+      }
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to delete file:", error);
+    return { success: false, error: error?.message || "Unknown error." };
+  }
+}
+
+// Provide an IPC handler (will be used if this registration is the active one)
+ipcMain.handle(
+  "delete-file",
+  async (_event, filePath: string, options?: { trash?: boolean }) => {
+    return await deleteFile(filePath, options?.trash ?? true);
+  }
+);
+
 ipcMain.handle("open-file", async (_event, filePath: string) => {
   await openFile(filePath);
 });
+
 
 ipcMain.handle("get-version", () => localVersion);
 
@@ -695,6 +774,43 @@ ipcMain.handle("save-mhrp-file", async (_event, name: string) => {
     console.error("Mihari Preset file selection failed:", error);
     return { success: false, error: error?.message || "Unknown error." };
   }
+});
+
+type GPUDevice = {
+  vendor?: string;
+  deviceName?: string;
+};
+
+type GPUInfo = {
+  graphics?: {
+    devices?: GPUDevice[];
+  };
+};
+
+ipcMain.handle("gpu:get-video-codec", async (): Promise<string> => {
+  const gpuInfo = (await app.getGPUInfo("complete")) as unknown;
+
+  if (
+    typeof gpuInfo !== "object" ||
+    gpuInfo === null ||
+    !("graphics" in gpuInfo)
+  ) {
+    return "h264";
+  }
+
+  const { graphics } = gpuInfo as GPUInfo;
+  const devices = graphics?.devices ?? [];
+
+  const gpuString = devices
+    .map((d) => `${d.vendor ?? ""} ${d.deviceName ?? ""}`.toLowerCase())
+    .join(" ");
+
+  if (gpuString.includes("nvidia")) return "h264_nvenc";
+  if (gpuString.includes("intel")) return "h264_qsv";
+  if (gpuString.includes("amd") || gpuString.includes("radeon"))
+    return "h264_amf";
+
+  return "h264";
 });
 
 ipcMain.handle("get-clipboard-text", async () => {
