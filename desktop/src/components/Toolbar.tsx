@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { X, Minus, Maximize } from "lucide-react";
 
 interface ToolbarProp {

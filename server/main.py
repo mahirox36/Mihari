@@ -39,12 +39,12 @@ from asyncyt import (
     AudioFormat,
     VideoFormat,
     DownloadNotFoundError,
-    FFmpegProcessingError,
     get_unique_path,
 )
 from asyncyt.utils import get_unique_filename
 from libs.Models import (
     TORTOISE_ORM,
+    DownloadType,
     Downloads,
     Update,
     Users,
@@ -213,8 +213,8 @@ async def download_video(request: DownloadRequest, background_tasks: BackgroundT
     if not downloader:
         raise HTTPException(status_code=503, detail="Downloader not initialized")
 
+    download = await Downloads.create_download(request.url, request.config)
     try:
-        download = await Downloads.create_download(request.url, request.config)
         await download.start_download()
         response = await downloader.download_with_response(request)
         await download.determine_success(response)
@@ -268,8 +268,8 @@ async def download_playlist(request: PlaylistRequest):
     if not downloader:
         raise HTTPException(status_code=503, detail="Downloader not initialized")
 
+    download = await Downloads.create_download(request.url, request.playlist_config, type=DownloadType.PLAYLIST)
     try:
-        download = await Downloads.create_download(request.url, request.config)
         await download.start_download()
         response = await downloader.download_playlist(request=request)
         await download.determine_success(response)
@@ -418,10 +418,10 @@ async def websocket_download(websocket: WebSocket):
         """Process download in background while allowing message handling"""
         nonlocal last_activity
 
+        if not request.config:
+            request.config = DownloadConfig()
+        download = await Downloads.create_download(request.url, request.config)
         try:
-            if not request.config:
-                request.config = DownloadConfig()
-            download = await Downloads.create_download(request.url, request.config)
             last_activity = asyncio.get_event_loop().time()
             await websocket.send_json({"type": "info_id", "id": download_id})
 
@@ -519,17 +519,7 @@ async def websocket_download(websocket: WebSocket):
                     "data": {"error": "Download cancelled"},
                 }
             )
-            raise  # Re-raise to properly handle cancellation
-        except FFmpegProcessingError as e:
-            console.print_exception()
-            print(e.cmd)
-            logger.error(e.error_code)
-            logger.error(e.output)
-            await download.set_failed(str(e))
-            await websocket.send_json(
-                {"type": "error", "id": download_id, "data": {"error": str(e)}}
-            )
-            last_activity = asyncio.get_event_loop().time()
+            # raise  # Re-raise to properly handle cancellation
         except Exception as e:
             console.print_exception()
             await download.set_failed(str(e))

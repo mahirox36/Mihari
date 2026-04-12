@@ -4,7 +4,7 @@ pydantic
 rich
 aiofiles
 aiohttp
-asyncyt
+asyncyt==2.0.0
 tortoise-ORM
 aiosqlite
 aerich

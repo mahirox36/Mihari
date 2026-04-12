@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   X,
   Settings,
@@ -12,66 +13,86 @@ import {
   Gauge,
   Star,
   Music,
-  AlertTriangle,
+  SlidersHorizontal,
+  Layers3,
+  MessagesSquare,
 } from "lucide-react";
 import { CustomOptionsInput, NumberInput, Switch, TextInput } from "./inputs";
-import { AudioCodec, Preset, VideoCodec } from "../types/enums";
+import {
+  AudioChannels,
+  AudioCodec,
+  PixelFormat,
+  Preset,
+  TuneOptions,
+  VideoCodec,
+} from "../types/enums";
 import { Dropdown } from "./Keys";
 import { useSettings } from "../hooks/SettingsContext";
+import { AudioEncodingConfig, VideoEncodingConfig } from "../types/asyncyt";
 
 interface AdvanceSidebarProp {
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-
   writeSubs: boolean;
   setWriteSubs: React.Dispatch<React.SetStateAction<boolean>>;
-
   subtitleLang: string;
   setSubtitleLang: React.Dispatch<React.SetStateAction<string>>;
-
   writeThumbnail: boolean;
   setWriteThumbnail: React.Dispatch<React.SetStateAction<boolean>>;
-
   writeInfoJson: boolean;
   setWriteInfoJson: React.Dispatch<React.SetStateAction<boolean>>;
-
   customFilename: string;
   setCustomFilename: React.Dispatch<React.SetStateAction<string>>;
-
   cookiesFile: string;
   setCookiesFile: React.Dispatch<React.SetStateAction<string>>;
-
   proxy: string;
   setProxy: React.Dispatch<React.SetStateAction<string>>;
-
   rateLimit: string;
   setRateLimit: React.Dispatch<React.SetStateAction<string>>;
-
   retries: number;
   setRetries: React.Dispatch<React.SetStateAction<number>>;
-
   fragmentRetries: number;
   setFragmentRetries: React.Dispatch<React.SetStateAction<number>>;
-
   customOptions: string;
   setCustomOptions: React.Dispatch<React.SetStateAction<string>>;
+  embedMetadata: boolean;
+  setEmbedMetadata: React.Dispatch<React.SetStateAction<boolean>>;
+  writeLiveChat: boolean;
+  setWriteLiveChat: React.Dispatch<React.SetStateAction<boolean>>;
+  videoEncoding: VideoEncodingConfig;
+  setVideoEncoding: React.Dispatch<React.SetStateAction<VideoEncodingConfig>>;
+  audioEncoding: AudioEncodingConfig;
+  setAudioEncoding: React.Dispatch<React.SetStateAction<AudioEncodingConfig>>;
+  encodingOverwrite: boolean;
+  setEncodingOverwrite: React.Dispatch<React.SetStateAction<boolean>>;
+  encodingExtraGlobalArgs: string[];
+  setEncodingExtraGlobalArgs: React.Dispatch<React.SetStateAction<string[]>>;
+}
 
-  videoCodec: VideoCodec;
-  setVideoCodec: React.Dispatch<React.SetStateAction<VideoCodec>>;
-  videoBitrate: null | string;
-  setVideoBitrate: React.Dispatch<React.SetStateAction<null | string>>;
-  crf: null | number;
-  setCrf: React.Dispatch<React.SetStateAction<null | number>>;
-  preset: Preset;
-  setPreset: React.Dispatch<React.SetStateAction<Preset>>;
-  audioCodec: AudioCodec;
-  setAudioCodec: React.Dispatch<React.SetStateAction<AudioCodec>>;
-  audioBitrate: null | number;
-  setAudioBitrate: React.Dispatch<React.SetStateAction<null | number>>;
-  audioSampleRate: null | number;
-  setAudioSampleRate: React.Dispatch<React.SetStateAction<null | number>>;
-  noCodecCompatibilityError: boolean;
-  setNoCodecCompatibilityError: React.Dispatch<React.SetStateAction<boolean>>;
+const AUTO_VALUE = "auto";
+
+function valueOrAuto(value?: string | null) {
+  return value ?? AUTO_VALUE;
+}
+
+function parseArgs(value: string) {
+  return value.split(/\s+/).map((item) => item.trim()).filter(Boolean);
+}
+
+function formatArgs(args: string[]) {
+  return args.join(" ");
+}
+
+// Section header
+function SectionHeader({ icon: Icon, label, color }: { icon: any; label: string; color: string }) {
+  return (
+    <div className="flex items-center gap-2 pt-2 pb-1">
+      <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${color}`}>
+        <Icon className="h-3.5 w-3.5 text-white" />
+      </div>
+      <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider">{label}</h3>
+    </div>
+  );
 }
 
 export function AdvanceSidebar({
@@ -99,240 +120,361 @@ export function AdvanceSidebar({
   setFragmentRetries,
   customOptions,
   setCustomOptions,
-  videoCodec,
-  setVideoCodec,
-  videoBitrate,
-  setVideoBitrate,
-  crf,
-  setCrf,
-  preset,
-  setPreset,
-  audioCodec,
-  setAudioCodec,
-  audioBitrate,
-  setAudioBitrate,
-  audioSampleRate,
-  setAudioSampleRate,
-  noCodecCompatibilityError,
-  setNoCodecCompatibilityError,
+  embedMetadata,
+  setEmbedMetadata,
+  writeLiveChat,
+  setWriteLiveChat,
+  videoEncoding,
+  setVideoEncoding,
+  audioEncoding,
+  setAudioEncoding,
+  encodingOverwrite,
+  setEncodingOverwrite,
+  encodingExtraGlobalArgs,
+  setEncodingExtraGlobalArgs,
 }: AdvanceSidebarProp) {
   const { performanceMode } = useSettings();
+
   async function handleSelectCookiesFile() {
-    if (window.api && window.api.selectCookieFile) {
-      const result = await window.api.selectCookieFile();
-      if (result.success && result.path) {
-        setCookiesFile(result.path);
-      }
+    if (!window.api?.selectCookieFile) return;
+    const result = await window.api.selectCookieFile();
+    if (result.success && result.path) {
+      setCookiesFile(result.path);
     }
   }
 
+  const updateVideoEncoding = (updates: Partial<VideoEncodingConfig>) => {
+    setVideoEncoding((prev) => ({ ...prev, ...updates }));
+  };
+
+  const updateAudioEncoding = (updates: Partial<AudioEncodingConfig>) => {
+    setAudioEncoding((prev) => ({ ...prev, ...updates }));
+  };
+
   return (
     <>
-      {/* Backdrop */}
       {isOpen && (
         <div
-          className={`fixed inset-0 h-full bg-black/20 ${
+          className={`fixed inset-0 z-20 bg-slate-950/50 ${
             performanceMode ? "" : "backdrop-blur-sm"
-          } transition-opacity duration-300 z-20`}
+          } transition-opacity duration-200`}
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* Main sidebar */}
       <div
-        className={`fixed top-10 right-0 w-96 max-w-full bg-gradient-to-br from-slate-900/95 via-blue-900/90 to-indigo-900/95 backdrop-blur-2xl border-l border-white/10 z-30 transform transition-all duration-500 ease-out ${
-          isOpen
-            ? "translate-x-0 shadow-2xl shadow-black/50"
-            : "translate-x-full"
+        className={`fixed top-10 right-0 z-30 h-[calc(100vh-2.5rem)] w-96 max-w-full transform border-l border-white/10 bg-[linear-gradient(160deg,rgba(15,23,42,0.97)_0%,rgba(12,74,110,0.15)_50%,rgba(15,23,42,0.97)_100%)] backdrop-blur-2xl transition-transform duration-300 ease-out ${
+          isOpen ? "translate-x-0 shadow-2xl shadow-black/40" : "translate-x-full"
         }`}
-        style={{
-          height: "calc(100vh - 2.5rem)", // 4rem = 64px, adjust if your toolbar is a different height
-          background:
-            "linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.9) 50%, rgba(67, 56, 202, 0.95) 100%)",
-        }}
       >
+        {/* Decorative blobs */}
         {isOpen && (
-          <div className="absolute inset-0 overflow-hidden rounded-l-[32px] pointer-events-none">
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-cyan-400/20 to-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-            <div
-              className="absolute -bottom-40 -right-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-purple-500/20 rounded-full blur-3xl animate-pulse"
-              style={{ animationDelay: "1s" }}
-            ></div>
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -top-16 right-4 h-40 w-40 rounded-full bg-cyan-500/8 blur-3xl" />
+            <div className="absolute bottom-10 right-10 h-40 w-40 rounded-full bg-blue-500/8 blur-3xl" />
           </div>
         )}
 
         {/* Header */}
-        <div className="relative z-10 p-6 border-b border-white/10 bg-gradient-to-r from-white/5 to-white/10 backdrop-blur-sm">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <h2 className="text-xl font-bold text-white tracking-wide">
-                Advanced Options
-              </h2>
+        <div className="relative z-10 flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-md shadow-cyan-500/20">
+              <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <button
-              className="w-10 h-10 flex items-center justify-center hover:bg-red-500/20 transition-all duration-200 rounded-xl border border-white/10 hover:border-red-400/50 group"
-              onClick={() => setIsOpen(false)}
-            >
-              <X className="w-5 h-5 text-white/70 group-hover:text-red-400 transition-colors" />
-            </button>
+            <div>
+              <h2 className="text-base font-bold text-white">Advanced Options</h2>
+              <p className="text-xs text-white/50">Encoding, subtitles & more</p>
+            </div>
           </div>
+          <button
+            className="flex h-8 w-8 items-center cursor-pointer justify-center rounded-lg border border-white/10 hover:border-red-400/40 hover:bg-red-500/10 transition-all duration-150"
+            onClick={() => setIsOpen(false)}
+          >
+            <X className="h-4 w-4 text-white/60" />
+          </button>
         </div>
 
-        {/* Encoding Section */}
-        <div className="relative z-10 p-6 overflow-y-auto max-h-[calc(100vh-100px)] space-y-6 custom-scrollbar">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-400/20 to-blue-500/20 flex items-center justify-center">
-                <Settings className="w-4 h-4 text-indigo-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white/90">Encoding</h3>
-            </div>
+        {/* Content */}
+        <div className="relative z-10 h-[calc(100%-64px)] overflow-y-auto custom-scrollbar px-5 py-4 space-y-5">
+
+          {/* ── VIDEO ENCODING ── */}
+          <SectionHeader icon={Video} label="Video Encoding" color="bg-cyan-600" />
+
+          <div className="space-y-3">
             {/* Video Codec */}
-            <div className="relative p-4 rounded-2xl bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm z-10 border border-white/10 hover:border-cyan-400/30 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-2">
-                <Video className="w-4 h-4 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
-                <span className="text-sm font-semibold text-white/90 group-hover:text-white transition-colors">
-                  Video Codec
-                </span>
+            <div className="rounded-xl bg-white/5 border border-white/8 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Video className="h-3.5 w-3.5 text-cyan-400" />
+                <span className="text-xs font-semibold text-white/80">Video Codec</span>
               </div>
-              <span className="text-xs text-white/60 group-hover:text-white/70 transition-colors mb-3 block">
-                Choose video compression format (H.264, H.265, VP9, etc.)
-              </span>
+              <p className="text-xs text-white/40 mb-2">Auto = backend default. Force only when needed.</p>
               <Dropdown
-                items={Object.entries(VideoCodec).map(([label, value]) => ({
-                  label,
-                  value,
-                }))}
-                value={videoCodec}
-                onSelect={(val) => setVideoCodec(val as VideoCodec)}
-                placeholder="Select Video Codec"
+                items={[
+                  { label: "Auto (Recommended)", value: AUTO_VALUE },
+                  ...Object.entries(VideoCodec).map(([label, value]) => ({
+                    label: label.replaceAll("_", " "),
+                    value,
+                  })),
+                ]}
+                value={valueOrAuto(videoEncoding.codec)}
+                onSelect={(val) => updateVideoEncoding({ codec: val === AUTO_VALUE ? AUTO_VALUE : (val as VideoCodec) })}
+                placeholder="Auto"
                 variant="default"
-                size="md"
+                size="sm"
                 searchable
-                className="mb-2"
+                width="trigger"
               />
             </div>
-            {/* Video Bitrate */}
+
             <TextInput
               name="Video Bitrate"
-              description="Control video quality and file size (higher = better quality, larger file)"
-              value={videoBitrate ?? ""}
-              setValue={setVideoBitrate}
+              description="e.g. 2500k. Leave blank to let encoder decide."
+              value={videoEncoding.bitrate ?? ""}
+              setValue={(v) => updateVideoEncoding({ bitrate: v.trim() || null })}
               placeholder="2500k"
               icon={Gauge}
             />
-            {/* CRF */}
+
             <NumberInput
-              name="Quality (CRF)"
-              description="Visual quality setting - lower values = higher quality (18-28 recommended)"
-              value={crf ?? 0}
-              setValue={setCrf}
+              name="CRF Quality"
+              description="Lower = higher quality. 18–28 is typical."
+              value={videoEncoding.crf ?? 0}
+              setValue={(v) => updateVideoEncoding({ crf: v || null })}
               min={0}
               max={51}
               icon={Star}
             />
+
             {/* Preset */}
-            <div className="relative p-4 rounded-2xl bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm z-20 border border-white/10 hover:border-cyan-400/30 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-2">
-                <Clock className="w-4 h-4 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
-                <span className="text-sm font-semibold text-white/90 group-hover:text-white transition-colors">
-                  Encoding Speed
-                </span>
+            <div className="rounded-xl bg-white/5 border border-white/8 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="h-3.5 w-3.5 text-cyan-400" />
+                <span className="text-xs font-semibold text-white/80">Encoding Preset</span>
               </div>
-              <span className="text-xs text-white/60 group-hover:text-white/70 transition-colors mb-3 block">
-                Balance between encoding speed and compression efficiency
-              </span>
+              <p className="text-xs text-white/40 mb-2">Slower = better compression.</p>
               <Dropdown
-                items={Object.entries(Preset).map(([label, value]) => ({
-                  label,
-                  value,
-                }))}
-                value={preset}
-                onSelect={(val) => setPreset(val as Preset)}
-                placeholder="Select Preset"
+                items={[
+                  { label: "Auto", value: AUTO_VALUE },
+                  ...Object.entries(Preset).map(([label, value]) => ({ label, value })),
+                ]}
+                value={valueOrAuto(videoEncoding.preset)}
+                onSelect={(val) => updateVideoEncoding({ preset: val === AUTO_VALUE ? null : (val as Preset) })}
+                placeholder="Auto"
                 variant="default"
-                size="md"
+                size="sm"
                 searchable
-                className="mb-2"
-              />
-            </div>
-            {/* Audio Codec */}
-            <div className="relative p-4 rounded-2xl bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-sm z-10 border border-white/10 hover:border-cyan-400/30 transition-all duration-300">
-              <div className="flex items-center gap-3 mb-2">
-                <Volume2 className="w-4 h-4 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
-                <span className="text-sm font-semibold text-white/90 group-hover:text-white transition-colors">
-                  Audio Codec
-                </span>
-              </div>
-              <span className="text-xs text-white/60 group-hover:text-white/70 transition-colors mb-3 block">
-                Choose audio compression format (AAC, MP3, FLAC, etc.)
-              </span>
-
-              <Dropdown
-                items={Object.entries(AudioCodec).map(([label, value]) => ({
-                  label,
-                  value,
-                }))}
-                value={audioCodec}
-                onSelect={(val) => setAudioCodec(val as AudioCodec)}
-                placeholder="Select Audio Codec"
-                variant="default"
-                size="md"
-                searchable
-                className="mb-2"
+                width="trigger"
               />
             </div>
 
-            {/* Audio Bitrate */}
+            {/* Tune */}
+            <div className="rounded-xl bg-white/5 border border-white/8 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <SlidersHorizontal className="h-3.5 w-3.5 text-cyan-400" />
+                <span className="text-xs font-semibold text-white/80">Tune</span>
+              </div>
+              <Dropdown
+                items={[
+                  { label: "Auto", value: AUTO_VALUE },
+                  ...Object.entries(TuneOptions).map(([label, value]) => ({ label, value })),
+                ]}
+                value={valueOrAuto(videoEncoding.tune)}
+                onSelect={(val) => updateVideoEncoding({ tune: val === AUTO_VALUE ? null : val })}
+                placeholder="Auto"
+                variant="default"
+                size="sm"
+                searchable
+                width="trigger"
+              />
+            </div>
+
+            {/* Pixel Format */}
+            <div className="rounded-xl bg-white/5 border border-white/8 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Layers3 className="h-3.5 w-3.5 text-cyan-400" />
+                <span className="text-xs font-semibold text-white/80">Pixel Format</span>
+              </div>
+              <Dropdown
+                items={[
+                  { label: "Auto", value: AUTO_VALUE },
+                  ...Object.entries(PixelFormat).map(([label, value]) => ({ label, value })),
+                ]}
+                value={valueOrAuto(videoEncoding.pixel_format)}
+                onSelect={(val) => updateVideoEncoding({ pixel_format: val === AUTO_VALUE ? null : val })}
+                placeholder="Auto"
+                variant="default"
+                size="sm"
+                searchable
+                width="trigger"
+              />
+            </div>
+
+            {/* Width / Height */}
+            <div className="grid grid-cols-2 gap-3">
+              <NumberInput
+                name="Width"
+                description="0 = keep original"
+                value={videoEncoding.width ?? 0}
+                setValue={(v) => updateVideoEncoding({ width: v || null })}
+                min={0}
+                max={7680}
+                icon={Video}
+              />
+              <NumberInput
+                name="Height"
+                description="0 = keep original"
+                value={videoEncoding.height ?? 0}
+                setValue={(v) => updateVideoEncoding({ height: v || null })}
+                min={0}
+                max={4320}
+                icon={Video}
+              />
+            </div>
+
             <NumberInput
-              name="Audio Bitrate"
-              description="Audio quality in kbps - higher values mean better sound quality"
-              value={audioBitrate ?? 0}
-              setValue={setAudioBitrate}
+              name="FPS"
+              description="0 = keep original frame rate."
+              value={videoEncoding.fps ?? 0}
+              setValue={(v) => updateVideoEncoding({ fps: v || null })}
               min={0}
-              max={1000}
+              max={240}
+              icon={Zap}
+            />
+
+            <TextInput
+              name="Video Extra Args"
+              description="Extra codec-specific args separated by spaces."
+              value={formatArgs(videoEncoding.extra_args)}
+              setValue={(v) => updateVideoEncoding({ extra_args: parseArgs(v) })}
+              placeholder="-profile:v high"
+              icon={Video}
+            />
+          </div>
+
+          {/* ── AUDIO ENCODING ── */}
+          <SectionHeader icon={Volume2} label="Audio Encoding" color="bg-purple-600" />
+
+          <div className="space-y-3">
+            {/* Audio Codec */}
+            <div className="rounded-xl bg-white/5 border border-white/8 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Volume2 className="h-3.5 w-3.5 text-purple-400" />
+                <span className="text-xs font-semibold text-white/80">Audio Codec</span>
+              </div>
+              <p className="text-xs text-white/40 mb-2">Auto = backend choice. Copy = pass through untouched.</p>
+              <Dropdown
+                items={[
+                  { label: "Auto (Recommended)", value: AUTO_VALUE },
+                  ...Object.entries(AudioCodec).map(([label, value]) => ({
+                    label: label.replaceAll("_", " "),
+                    value,
+                  })),
+                ]}
+                value={valueOrAuto(audioEncoding.codec)}
+                onSelect={(val) => updateAudioEncoding({ codec: val === AUTO_VALUE ? AUTO_VALUE : (val as AudioCodec) })}
+                placeholder="Auto"
+                variant="default"
+                size="sm"
+                searchable
+                width="trigger"
+              />
+            </div>
+
+            <TextInput
+              name="Audio Bitrate"
+              description="e.g. 192k"
+              value={audioEncoding.bitrate ?? ""}
+              setValue={(v) => updateAudioEncoding({ bitrate: v.trim() || null })}
+              placeholder="192k"
               icon={Music}
             />
-            {/* Audio Sample Rate */}
+
             <NumberInput
-              name="Sample Rate"
-              description="Audio frequency range in Hz - 44.1kHz for music, 48kHz for video"
-              value={audioSampleRate ?? 0}
-              setValue={setAudioSampleRate}
+              name="Audio Quality"
+              description="Encoder-specific quality scale (0–10)."
+              value={audioEncoding.quality ?? 0}
+              setValue={(v) => updateAudioEncoding({ quality: v || null })}
+              min={0}
+              max={10}
+              icon={Star}
+            />
+
+            <NumberInput
+              name="Sample Rate (Hz)"
+              description="44100 or 48000 are most common."
+              value={audioEncoding.sample_rate ?? 0}
+              setValue={(v) => updateAudioEncoding({ sample_rate: v || null })}
               min={0}
               max={192000}
               icon={Zap}
             />
-            {/* Codec Compatibility */}
-            <Switch
-              name="Skip Compatibility Checks"
-              description="Allow potentially incompatible codec combinations"
-              property={noCodecCompatibilityError}
-              setProperty={setNoCodecCompatibilityError}
-              icon={AlertTriangle}
+
+            {/* Audio Channels */}
+            <div className="rounded-xl bg-white/5 border border-white/8 p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Music className="h-3.5 w-3.5 text-purple-400" />
+                <span className="text-xs font-semibold text-white/80">Channels</span>
+              </div>
+              <Dropdown
+                items={[
+                  { label: "Auto", value: AUTO_VALUE },
+                  ...Object.entries(AudioChannels).map(([label, value]) => ({ label, value })),
+                ]}
+                value={audioEncoding.channels ? String(audioEncoding.channels) : AUTO_VALUE}
+                onSelect={(val) => updateAudioEncoding({ channels: val === AUTO_VALUE ? null : parseInt(val, 10) })}
+                placeholder="Auto"
+                variant="default"
+                size="sm"
+                width="trigger"
+              />
+            </div>
+
+            <TextInput
+              name="Audio Extra Args"
+              description="Extra codec-specific audio args."
+              value={formatArgs(audioEncoding.extra_args)}
+              setValue={(v) => updateAudioEncoding({ extra_args: parseArgs(v) })}
+              placeholder="-application audio"
+              icon={Volume2}
             />
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-400/20 to-blue-500/20 flex items-center justify-center">
-                <FileText className="w-4 h-4 text-cyan-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white/90">Subtitles</h3>
-            </div>
+          {/* ── GLOBAL ENCODING ── */}
+          <SectionHeader icon={Settings} label="Global Encoding" color="bg-slate-600" />
+
+          <div className="space-y-3">
+            <Switch
+              name="Overwrite Existing Files"
+              description="Replace files with same name during encoding."
+              property={encodingOverwrite}
+              setProperty={setEncodingOverwrite}
+              icon={FileText}
+            />
+
+            <TextInput
+              name="Global FFmpeg Args"
+              description="Extra global ffmpeg args."
+              value={formatArgs(encodingExtraGlobalArgs)}
+              setValue={(v) => setEncodingExtraGlobalArgs(parseArgs(v))}
+              placeholder="-movflags +faststart"
+              icon={Settings}
+            />
+          </div>
+
+          {/* ── SUBTITLES ── */}
+          <SectionHeader icon={FileText} label="Subtitles" color="bg-cyan-700" />
+
+          <div className="space-y-3">
             <Switch
               name="Write Subtitles"
-              description="Generate subtitle files for videos"
+              description="Download subtitle files alongside the media."
               property={writeSubs}
               setProperty={setWriteSubs}
               icon={FileText}
             />
             <TextInput
-              name="Subtitle Language"
-              description="Language code for subtitles (e.g., 'en', 'es', 'fr')"
+              name="Language Code"
+              description="e.g. en, ar, ja, or en.* for fallback."
               value={subtitleLang}
               setValue={setSubtitleLang}
               placeholder="en"
@@ -340,45 +482,47 @@ export function AdvanceSidebar({
             />
           </div>
 
-          {/* Media Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-400/20 to-indigo-500/20 flex items-center justify-center">
-                <Image className="w-4 h-4 text-purple-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white/90">
-                Media Files
-              </h3>
-            </div>
+          {/* ── MEDIA FILES ── */}
+          <SectionHeader icon={Image} label="Media & Metadata" color="bg-indigo-600" />
+
+          <div className="space-y-3">
             <Switch
               name="Download Thumbnail"
-              description="Save thumbnail images alongside videos"
+              description="Save artwork next to output file."
               property={writeThumbnail}
               setProperty={setWriteThumbnail}
               icon={Image}
             />
             <Switch
               name="Save Info JSON"
-              description="Create detailed metadata files"
+              description="Store raw metadata for later reuse."
               property={writeInfoJson}
               setProperty={setWriteInfoJson}
               icon={FileText}
             />
+            <Switch
+              name="Embed Metadata"
+              description="Write title, artist, etc. into the file."
+              property={embedMetadata}
+              setProperty={setEmbedMetadata}
+              icon={Sparkles}
+            />
+            <Switch
+              name="Write Live Chat"
+              description="Save live chat logs when available."
+              property={writeLiveChat}
+              setProperty={setWriteLiveChat}
+              icon={MessagesSquare}
+            />
           </div>
 
-          {/* Configuration Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-green-400/20 to-teal-500/20 flex items-center justify-center">
-                <Settings className="w-4 h-4 text-green-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white/90">
-                Configuration
-              </h3>
-            </div>
+          {/* ── CONFIGURATION ── */}
+          <SectionHeader icon={Settings} label="Configuration" color="bg-emerald-600" />
+
+          <div className="space-y-3">
             <TextInput
               name="Custom Filename"
-              description="Template for naming downloaded files"
+              description="Output filename template."
               value={customFilename}
               setValue={setCustomFilename}
               placeholder="%(title)s.%(ext)s"
@@ -386,24 +530,24 @@ export function AdvanceSidebar({
             />
             <TextInput
               name="Cookies File"
-              description="Authentication cookies for private content"
+              description="Use cookies for private / signed-in content."
               value={cookiesFile}
               setValue={setCookiesFile}
-              placeholder="Select cookies file..."
+              placeholder="Select cookies file…"
               icon={FileText}
               rightButton={
                 <button
                   type="button"
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-300"
+                  className="rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-2 text-xs font-medium text-white hover:from-cyan-500 hover:to-blue-500 transition-all cursor-pointer"
                   onClick={handleSelectCookiesFile}
                 >
                   Browse
                 </button>
               }
-            />
+            />  
             <TextInput
-              name="Proxy Server"
-              description="Route downloads through proxy server"
+              name="Proxy"
+              description="Proxy URL for requests."
               value={proxy}
               setValue={setProxy}
               placeholder="http://proxy:port"
@@ -411,7 +555,7 @@ export function AdvanceSidebar({
             />
             <TextInput
               name="Rate Limit"
-              description="Limit download speed (e.g., '1M', '500K')"
+              description="e.g. 1M, 500K"
               value={rateLimit}
               setValue={setRateLimit}
               placeholder="1M"
@@ -419,48 +563,35 @@ export function AdvanceSidebar({
             />
           </div>
 
-          {/* Performance Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400/20 to-red-500/20 flex items-center justify-center">
-                <Clock className="w-4 h-4 text-orange-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white/90">
-                Performance
-              </h3>
-            </div>
+          {/* ── PERFORMANCE ── */}
+          <SectionHeader icon={Clock} label="Performance" color="bg-orange-600" />
+
+          <div className="space-y-3">
             <NumberInput
               name="Download Retries"
-              description="Retry failed downloads (0-10)"
+              description="Retries for main download."
               value={retries}
               setValue={setRetries}
               min={0}
-              max={10}
+              max={20}
               icon={Clock}
             />
             <NumberInput
               name="Fragment Retries"
-              description="Retry failed video fragments (0-10)"
+              description="Retries for fragmented streams."
               value={fragmentRetries}
               setValue={setFragmentRetries}
               min={0}
-              max={10}
+              max={20}
               icon={Clock}
             />
           </div>
 
-          {/* Advanced Section */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-400/20 to-purple-500/20 flex items-center justify-center">
-                <Settings className="w-4 h-4 text-violet-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white/90">Advanced</h3>
-            </div>
-            <CustomOptionsInput
-              value={customOptions}
-              setValue={setCustomOptions}
-            />
+          {/* ── ADVANCED ── */}
+          <SectionHeader icon={Settings} label="Advanced" color="bg-violet-600" />
+
+          <div className="space-y-3 pb-6">
+            <CustomOptionsInput value={customOptions} setValue={setCustomOptions} />
           </div>
         </div>
       </div>

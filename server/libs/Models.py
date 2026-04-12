@@ -1,12 +1,14 @@
 import base64
 from enum import StrEnum, auto
 import json
+import logging
 import os
 from pathlib import Path
 import sys
 from typing import Dict, Optional, Union, Any
 import aiofiles
 import aiohttp
+from asyncyt.basemodels import PlaylistConfig
 from tortoise import fields
 from tortoise.models import Model
 from datetime import datetime, timedelta, timezone
@@ -23,6 +25,7 @@ from asyncyt import (
 
 CurrentDir = Path.cwd()
 UPDATE_FLAG_PATH = CurrentDir / "update"
+logger = logging.getLogger(__name__)
 
 
 def is_bundled():
@@ -53,18 +56,41 @@ def get_data_path():
 
 async def Update():
     from aerich import Command
-    import libs.Models
+
     try:
         if UPDATE_FLAG_PATH.exists():
             command = Command(TORTOISE_ORM)
             await command.init()
-            await command.migrate()
-            await command.upgrade()
+
+            try:
+                await command.migrate()
+                await command.upgrade()
+
+            except Exception as migrate_error:
+                print("Migration failed, attempting full reset...")
+                import traceback
+                traceback.print_exc()
+                logger.exception(migrate_error)
+
+                import os
+                db_path = str(get_data_path().absolute() / "Mihari.sqlite3")
+                if db_path and os.path.exists(db_path):
+                    os.remove(db_path)
+
+                # re-run migrations after reset
+                await command.init()
+                await command.migrate()
+                await command.upgrade()
+
             UPDATE_FLAG_PATH.unlink()
             return True
+
         return False
+
     except Exception as e:
-        import traceback; traceback.print_exc()
+        import traceback
+        traceback.print_exc()
+        logger.exception(e)
         return None
 
 
@@ -89,6 +115,12 @@ class Priority(StrEnum):
     LOW = auto()
     NORMAL = auto()
     HIGH = auto()
+    
+class DownloadType(StrEnum):
+    VIDEO = auto()
+    PLAYLIST = auto()
+    
+
 
 
 class Downloads(Model):
@@ -102,6 +134,7 @@ class Downloads(Model):
 
     status = fields.CharEnumField(Status, default=Status.QUEUED, index=True)
     priority = fields.CharEnumField(Priority, default=Priority.NORMAL, index=True)
+    download_type = fields.CharEnumField(DownloadType, default=DownloadType.VIDEO, index=True)
 
     error = fields.TextField(null=True)
     retry_count = fields.IntField(default=0)
@@ -119,7 +152,7 @@ class Downloads(Model):
 
     user_id = fields.IntField(index=True)
 
-    class Meta:
+    class Meta: # type: ignore
         table = "downloads"
         indexes = [
             ("status", "priority"),
@@ -219,7 +252,8 @@ class Downloads(Model):
     async def create_download(
         cls,
         url: str,
-        config: Optional[DownloadConfig] = None,
+        config: Optional[DownloadConfig | PlaylistConfig] = None,
+        type: DownloadType = DownloadType.VIDEO,
         user_id: int = 0,
         priority: Priority = Priority.NORMAL,
     ):
@@ -228,6 +262,7 @@ class Downloads(Model):
             url=url,
             config=config.model_dump() if config else {},
             user_id=user_id,
+            type=type,
             priority=priority,
             status=Status.QUEUED,
         )
@@ -312,7 +347,7 @@ class Downloads(Model):
             ]
         )
 
-    async def delete(self):
+    async def delete(self): # type: ignore
         await super().delete()
         filepath = thumbnailsPath / (str(self.id) + ".jpg")
         if filepath.exists():

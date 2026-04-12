@@ -1,6 +1,6 @@
 # 🌸 Mihari — Your Adorable Video & Audio Downloader 💖
 
-**Mihari** is a sleek, fast, and _super customizable_ media downloader powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp)!  
+**Mihari** is a sleek, fast, and _super customizable_ media downloader powered by [AsyncYT](https://github.com/mahirox36/asyncyt)!  
 Whether you're saving a single song or downloading an entire playlist, **Mihari** makes it easy, efficient, and cute too! ✨
 👉 **[Download Mihari-BETA for Windows](https://github.com/mahirox36/Mihari/releases/latest)**, Just grab `Mihari-Setup.exe` and you’re ready to go!
 
@@ -12,7 +12,7 @@ Whether you're saving a single song or downloading an entire playlist, **Mihari*
 
 ## ✨ Features
 
-- 🎬 **Universal Video Support** — Download from thousands of platforms via `yt-dlp`.
+- 🎬 **Universal Video Support** — Download from thousands of platforms via `AsyncYT`.
 - ♾️ **Unlimited Downloads** — No caps, no restrictions. Download freely!
 - ⚙️ **Highly Customizable** — Choose format, quality, subtitles, metadata, thumbnails, cookies, and more!
 - 🖱️ **One‑Click Simplicity** — Download instantly with a single click or keyboard shortcut. _(Shortcuts coming soon!)_
