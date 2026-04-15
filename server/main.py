@@ -25,6 +25,7 @@ from rich.logging import RichHandler
 from rich.theme import Theme
 from asyncyt import (
     AsyncYT,
+    DownloadGotCanceledError,
     DownloadRequest,
     SearchRequest,
     PlaylistRequest,
@@ -374,17 +375,21 @@ async def websocket_download(websocket: WebSocket):
                     # Handle pong responses
                     continue
                 elif data.get("type", "") == "cancel":
-                    # Handle download cancellation
                     download_id = data.get("id")
                     if download_id and download_id in active_downloads:
+                        task = active_downloads.pop(download_id)  # remove it first
+                        task.cancel()                              # cancel the wrapper task
                         try:
-                            await downloader.cancel(download_id)
-                            del active_downloads[download_id]
-                            await websocket.send_json(
-                                {"type": "cancelled", "id": download_id}
-                            )
-                        except DownloadNotFoundError:
+                            await task
+                        except asyncio.CancelledError:
                             pass
+                        await websocket.send_json({"type": "cancelled", "id": download_id})
+                    else:
+                        await websocket.send_json({
+                            "type": "error",
+                            "id": download_id,
+                            "data": {"error": "Download not found or already completed"}
+                        })
                 else:
                     # Start new download
                     request = DownloadRequest(**data)
@@ -445,12 +450,16 @@ async def websocket_download(websocket: WebSocket):
             if request.config and request.config.audio_format:
                 request.config.audio_format = AudioFormat(request.config.audio_format)
 
+            if request.config.encoding and request.config.encoding.video and request.config.encoding.video.codec == None:
+                request.config.encoding.video.preset = None
+                
+            
             await download.start_download()
 
             # Run video info retrieval and download concurrently
             info_task = asyncio.create_task(downloader.get_video_info(request.url))
-            download_task = asyncio.create_task(
-                downloader.download(request, ws_progress_callback, finalize=False)
+            inner_download_task = asyncio.create_task(
+                downloader.download(request, ws_progress_callback, finalize=True)
             )
 
             # Wait for video info first and send it immediately when available
@@ -459,35 +468,19 @@ async def websocket_download(websocket: WebSocket):
                 await websocket.send_json(
                     {"type": "info_data", "id": download_id, "data": data.model_dump()}
                 )
+                await download.setInfo(data.model_dump())
             except Exception as e:
                 logger.warning(f"Failed to get video info for {download_id}: {e}")
                 # If video info fails, we can still continue with download
                 data = None
 
             # Wait for download to complete
-            filename = await download_task
-
-            output_path = Path(request.config.output_path)
-            
-            # Handle file renaming only if we have video info
-            if data and data.title and request.config:
-                file = output_path / Path(filename)
-                title = re.sub(r'[\\/:"*?<>|]', "_", data.title)
-                new_file = get_unique_filename(file, title)
-                try:
-                    file = file.rename(new_file)
-                except OSError as e:
-                    logger.warning(f"Failed to rename file: {e}")
-            else:
-                file = Path(filename)
-            output_final_file = output_path / get_unique_path(output_path, file.name)
-            await downloader.finalize_download(file.parent, output_path, request.config)
-            
+            file = await inner_download_task
 
             result = DownloadResponse(
                 success=True,
                 message="Download completed successfully",
-                filename=str(output_final_file.absolute()),
+                filename=str(file.absolute()),
                 video_info=data,
                 id=download_id,
             )
@@ -509,7 +502,7 @@ async def websocket_download(websocket: WebSocket):
 
             last_activity = asyncio.get_event_loop().time()
 
-        except asyncio.CancelledError:
+        except DownloadGotCanceledError:
             # Handle cancellation gracefully
             await download.set_canceled()
             await websocket.send_json(
@@ -530,8 +523,7 @@ async def websocket_download(websocket: WebSocket):
 
         finally:
             # Clean up this download from active downloads
-            if download_id in active_downloads:
-                del active_downloads[download_id]
+            active_downloads.pop(download_id, None)
 
     async def handle_idle_timeout():
         """Monitor for idle timeout and close connection if inactive"""

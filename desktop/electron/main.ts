@@ -68,6 +68,7 @@ const platform = os.platform();
 const backendName =
   platform === "win32" ? "Mihari backend.exe" : "Mihari backend";
 
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const getIconPath = () => {
   if (app.isPackaged) {
     return path.join(process.resourcesPath, "icon.ico");
@@ -76,10 +77,9 @@ const getIconPath = () => {
 };
 
 const iconPath = getIconPath();
-  
+
 const killAsync = promisify(kill);
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
 
 // Add logging to help diagnose path issues
@@ -327,6 +327,7 @@ function createWindow() {
       allowRunningInsecureContent: false,
     },
   });
+  win.setIcon(iconPath);
 
   win.setMenuBarVisibility(false);
   tray = new Tray(iconPath);
@@ -373,7 +374,7 @@ function createWindow() {
     app.isPackaged
       ? process.resourcesPath
       : path.join(__dirname, "..", "backend"),
-    backendName
+    backendName,
   );
 
   if (VITE_DEV_SERVER_URL) {
@@ -387,7 +388,7 @@ function createWindow() {
     if (!fsSync.existsSync(htmlPath)) {
       dialog.showErrorBox(
         "Missing File",
-        `index.html not found at: ${htmlPath}`
+        `index.html not found at: ${htmlPath}`,
       );
       return;
     }
@@ -396,7 +397,7 @@ function createWindow() {
       console.error("Failed to load index.html:", err);
       dialog.showErrorBox(
         "Load Error",
-        `Failed to load index.html: ${err.message}`
+        `Failed to load index.html: ${err.message}`,
       );
     });
 
@@ -553,7 +554,7 @@ async function openFile(filePath: string) {
 
 async function deleteFile(
   filePath: string,
-  moveToTrash = true
+  moveToTrash = true,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!filePath) {
@@ -573,7 +574,7 @@ async function deleteFile(
       } catch (err) {
         console.warn(
           "shell.trashItem failed, falling back to permanent delete.",
-          err
+          err,
         );
         try {
           // Attempt permanent delete immediately since trash failed
@@ -620,13 +621,12 @@ ipcMain.handle(
   "delete-file",
   async (_event, filePath: string, options?: { trash?: boolean }) => {
     return await deleteFile(filePath, options?.trash ?? true);
-  }
+  },
 );
 
 ipcMain.handle("open-file", async (_event, filePath: string) => {
   await openFile(filePath);
 });
-
 
 ipcMain.handle("get-version", () => localVersion);
 
@@ -665,7 +665,7 @@ ipcMain.handle("select-output-path", async () => {
       // Check write permission by attempting to write and remove a temp file
       const testFile = path.join(
         selectedPath,
-        `.mihari_write_test_${Date.now()}`
+        `.mihari_write_test_${Date.now()}`,
       );
       await fs.writeFile(testFile, "test");
       await fs.unlink(testFile);
@@ -828,7 +828,7 @@ ipcMain.handle("get-clipboard-text", async () => {
 ipcMain.handle("is-update-available", async () => {
   try {
     const response = await fetch(
-      "https://api.github.com/repos/mahirox36/mihari/releases/latest"
+      "https://api.github.com/repos/mahirox36/mihari/releases/latest",
     );
     if (!response.ok) {
       throw new Error("Failed to fetch latest release info");
@@ -890,7 +890,7 @@ ipcMain.handle(
     } else {
       return false;
     }
-  }
+  },
 );
 
 // Python process management IPC handlers
@@ -906,7 +906,7 @@ ipcMain.handle("restart-python-process", async () => {
     app.isPackaged
       ? process.resourcesPath
       : path.join(__dirname, "..", "backend"),
-    backendName
+    backendName,
   );
 
   try {

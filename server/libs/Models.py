@@ -247,6 +247,11 @@ class Downloads(Model):
                 await self.save(update_fields=["metadata"])
             else:
                 await self.set_failed(response.error or "Playlist download failed")
+    
+    async def setInfo(self, video_info: Dict[str, Any]):
+        """Set video info metadata"""
+        self.metadata.update(video_info)
+        await self.save(update_fields=["metadata"])
 
     @classmethod
     async def create_download(

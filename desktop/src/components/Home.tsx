@@ -118,6 +118,11 @@ function DownloadItem({ itemProgress, cancel }: DownloadItemProps) {
     if (itemProgress.status === "waiting") return "Queued";
     return itemProgress.status ?? "Working";
   };
+  const canCancel = () => {
+    if (itemProgress.status === "encoding") return true;
+    if (itemProgress.status === "downloading") return true;
+    return false;
+  };
 
   const displayPct = isEncoding ? encodingPct : pct;
 
@@ -197,7 +202,15 @@ function DownloadItem({ itemProgress, cancel }: DownloadItemProps) {
       {/* Cancel */}
       <button
         onClick={() => cancel(itemProgress.id)}
-        className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 dark:text-gray-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all duration-150"
+        disabled={!canCancel()}
+        className={`flex-shrink-0 w-7 h-7 flex items-center justify-center
+                    rounded-lg border-none bg-transparent
+                    transition-all duration-150
+                    text-gray-300 dark:text-gray-600
+                    hover:text-red-500 hover:bg-red-500/10
+                    disabled:opacity-30 disabled:pointer-events-none disabled:cursor-not-allowed
+                    enabled:cursor-pointer
+                    ${canCancel() ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
         title="Cancel"
       >
         <X className="w-3.5 h-3.5" />
@@ -769,83 +782,80 @@ export function Home({
       {/* ── URL INPUT ROW ── */}
       <div className="flex flex-col gap-2">
         <div className="flex">
-        <div className="flex flex-1 items-center rounded-l-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/40 focus-within:border-indigo-400 transition-all">
-          {/* URL field */}
-          <Clipboard
-            className="w-7 h-7 p-1 rounded-lg bg-gradient-to-r hover:from-cyan-400/30 hover:to-blue-400/30 ml-3 cursor-pointer"
-            onClick={() => paste()}
-          />
-          <input
-            type="url"
-            className="flex-1 px-4 py-3 bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none"
-            placeholder="Paste a YouTube, Twitter, or any video URL…"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && download()}
-          />
+          <div className="flex flex-1 items-center rounded-l-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/60 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/40 focus-within:border-indigo-400 transition-all">
+            {/* URL field */}
+            <Clipboard
+              className="w-7 h-7 p-1 rounded-lg bg-gradient-to-r hover:from-cyan-400/30 hover:to-blue-400/30 ml-3 cursor-pointer"
+              onClick={() => paste()}
+            />
+            <input
+              type="url"
+              className="flex-1 px-4 py-3 bg-transparent text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none"
+              placeholder="Paste a YouTube, Twitter, or any video URL…"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && download()}
+            />
 
-          {/* Divider */}
-          <div className="w-px bg-gray-200 dark:bg-gray-700 my-2" />
+            {/* Divider */}
+            <div className="w-px bg-gray-200 dark:bg-gray-700 my-2" />
 
-          {/* Quality / format dropdowns */}
-          <div className="flex items-center px-2 gap-1">
-            {!onlyAudio ? (
-              <>
+            {/* Quality / format dropdowns */}
+            <div className="flex items-center px-2 gap-1">
+              {!onlyAudio ? (
+                <>
+                  <Dropdown
+                    items={VIDEO_QUALITIES.map((i) => ({
+                      label: i.label,
+                      value: i.value,
+                    }))}
+                    value={quality}
+                    onSelect={setQuality}
+                    variant="minimal"
+                    size="sm"
+                    searchable={false}
+                    width="trigger"
+                  />
+                  <div className="w-px bg-gray-200 dark:bg-gray-700 h-5" />
+                  <Dropdown
+                    items={VIDEO_FORMATS.map((i) => ({
+                      label: i.label,
+                      value: i.value,
+                    }))}
+                    value={format}
+                    onSelect={setFormat}
+                    variant="minimal"
+                    size="sm"
+                    searchable={false}
+                    width="trigger"
+                  />
+                </>
+              ) : (
                 <Dropdown
-                  items={VIDEO_QUALITIES.map((i) => ({
+                  items={AUDIO_FORMATS.map((i) => ({
                     label: i.label,
                     value: i.value,
                   }))}
-                  value={quality}
-                  onSelect={setQuality}
+                  value={formatAudio}
+                  onSelect={setFormatAudio}
                   variant="minimal"
                   size="sm"
                   searchable={false}
                   width="trigger"
                 />
-                <div className="w-px bg-gray-200 dark:bg-gray-700 h-5" />
-                <Dropdown
-                  items={VIDEO_FORMATS.map((i) => ({
-                    label: i.label,
-                    value: i.value,
-                  }))}
-                  value={format}
-                  onSelect={setFormat}
-                  variant="minimal"
-                  size="sm"
-                  searchable={false}
-                  width="trigger"
-                />
-              </>
-            ) : (
-              <Dropdown
-                items={AUDIO_FORMATS.map((i) => ({
-                  label: i.label,
-                  value: i.value,
-                }))}
-                value={formatAudio}
-                onSelect={setFormatAudio}
-                variant="minimal"
-                size="sm"
-                searchable={false}
-                width="trigger"
-              />
-            )}
-          </div>
-          
-
-          {/* Divider */}
-          <div className="w-px bg-gray-200 dark:bg-gray-700 my-2" />
-        </div>
-        <button
-              onClick={() => download()}
-              className="flex cursor-pointer items-center gap-2 px-4 rounded-r-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-sm font-bold shadow-md hover:shadow-indigo-500/30 transition-all select-none"
-            >
-              <Download className="w-5 h-5" strokeWidth={3} />
-            </button>
+              )}
             </div>
-        
-        
+
+            {/* Divider */}
+            <div className="w-px bg-gray-200 dark:bg-gray-700 my-2" />
+          </div>
+          <button
+            onClick={() => download()}
+            className="flex cursor-pointer items-center gap-2 px-4 rounded-r-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white text-sm font-bold shadow-md hover:shadow-indigo-500/30 transition-all select-none"
+          >
+            <Download className="w-5 h-5" strokeWidth={3} />
+          </button>
+        </div>
 
         {/* ── CONTROLS ROW ── */}
         <div className="flex items-center justify-between flex-wrap gap-3">

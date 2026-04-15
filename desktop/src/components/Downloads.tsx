@@ -165,11 +165,15 @@ function Item({ item, deleteItem, onSelect, selected }: ItemProps) {
     },
     { divider: true },
     {
-      label: "Delete History & File",
+      label: `Delete History${isFinished ? " & File" : ""} `,
       value: "delete",
       icon: Trash2,
       danger: true,
       onClick: async () => {
+        if (!isFinished) {
+          deleteItem(item.id);
+          return;
+        }
         const response = await window.api.deleteFile(
           `${item.config.output_path}\\${item.filename}`,
         );
