@@ -1,27 +1,27 @@
 import base64
-from enum import StrEnum, auto
 import json
 import logging
 import os
-from pathlib import Path
 import sys
-from typing import Dict, Optional, Union, Any
+from datetime import datetime, timedelta, timezone
+from enum import StrEnum, auto
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
+
 import aiofiles
 import aiohttp
-from asyncyt.basemodels import PlaylistConfig
-from tortoise import fields
-from tortoise.models import Model
-from datetime import datetime, timedelta, timezone
-from tortoise.transactions import in_transaction
-import __main__
-
-
 from asyncyt import (
     DownloadConfig,
     DownloadProgress,
     DownloadResponse,
     PlaylistResponse,
 )
+from asyncyt.basemodels import PlaylistConfig
+from tortoise import fields
+from tortoise.models import Model
+from tortoise.transactions import in_transaction
+
+import __main__
 
 CurrentDir = Path.cwd()
 UPDATE_FLAG_PATH = CurrentDir / "update"
@@ -31,13 +31,16 @@ logger = logging.getLogger(__name__)
 def is_bundled():
     return getattr(sys, "frozen", False)
 
+
 def encode_presets_to_base64(presets):
     json_data = json.dumps(presets)
     return base64.b64encode(json_data.encode("utf-8")).decode("utf-8")
 
+
 def decode_presets_from_base64(data_str):
     decoded_bytes = base64.b64decode(data_str)
     return json.loads(decoded_bytes)
+
 
 def get_data_path():
     if is_bundled():
@@ -45,7 +48,13 @@ def get_data_path():
             return Path(str(os.getenv("APPDATA"))) / "Mihari" / "BackendData"
         # Mac
         elif sys.platform == "darwin":
-            return Path.home() / "Library" / "Application Support" / "Mihari" / "BackendData"
+            return (
+                Path.home()
+                / "Library"
+                / "Application Support"
+                / "Mihari"
+                / "BackendData"
+            )
         # Linux
         else:
             return Path.home() / ".config" / "Mihari" / "BackendData"
@@ -69,10 +78,12 @@ async def Update():
             except Exception as migrate_error:
                 print("Migration failed, attempting full reset...")
                 import traceback
+
                 traceback.print_exc()
                 logger.exception(migrate_error)
 
                 import os
+
                 db_path = str(get_data_path().absolute() / "Mihari.sqlite3")
                 if db_path and os.path.exists(db_path):
                     os.remove(db_path)
@@ -89,6 +100,7 @@ async def Update():
 
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         logger.exception(e)
         return None
@@ -115,12 +127,12 @@ class Priority(StrEnum):
     LOW = auto()
     NORMAL = auto()
     HIGH = auto()
-    
+
+
 class DownloadType(StrEnum):
     VIDEO = auto()
     PLAYLIST = auto()
-    
-
+    PLAYLIST_CHILD = auto()  # Video that belongs to a playlist — never shown standalone
 
 
 class Downloads(Model):
@@ -134,7 +146,11 @@ class Downloads(Model):
 
     status = fields.CharEnumField(Status, default=Status.QUEUED, index=True)
     priority = fields.CharEnumField(Priority, default=Priority.NORMAL, index=True)
-    download_type = fields.CharEnumField(DownloadType, default=DownloadType.VIDEO, index=True)
+    download_type = fields.CharEnumField(
+        DownloadType, default=DownloadType.VIDEO, index=True
+    )
+
+    playlist_id = fields.IntField(null=True, index=True)
 
     error = fields.TextField(null=True)
     retry_count = fields.IntField(default=0)
@@ -152,12 +168,13 @@ class Downloads(Model):
 
     user_id = fields.IntField(index=True)
 
-    class Meta: # type: ignore
+    class Meta:  # type: ignore
         table = "downloads"
         indexes = [
             ("status", "priority"),
             ("user_id", "status"),
             ("date_created",),
+            ("playlist_id",),
         ]
 
     def __str__(self):
@@ -172,17 +189,15 @@ class Downloads(Model):
     async def set_finished(self, path: Union[str, Path]):
         """Mark download as finished with transaction safety"""
         path = Path(path)
-
         async with in_transaction():
             self.filename = path.name
             self.date_finished = utcnow()
             self.status = Status.FINISHED
-
             await self.save()
 
     async def set_paused(self):
         """Pause download"""
-        if not self.status in [Status.QUEUED, Status.DOWNLOADING]:
+        if self.status in [Status.QUEUED, Status.DOWNLOADING]:
             self.status = Status.PAUSED
             await self.save(update_fields=["status"])
 
@@ -199,12 +214,11 @@ class Downloads(Model):
         await self.save(update_fields=["status", "date_finished"])
 
     async def set_failed(self, error: str):
-        """Mark download as failed with retry logic"""
+        """Mark download as failed"""
         async with in_transaction():
             self.status = Status.FAILED
             self.date_finished = utcnow()
             self.error = error[:2000]
-
             await self.save()
 
     async def determine_success(
@@ -247,7 +261,7 @@ class Downloads(Model):
                 await self.save(update_fields=["metadata"])
             else:
                 await self.set_failed(response.error or "Playlist download failed")
-    
+
     async def setInfo(self, video_info: Dict[str, Any]):
         """Set video info metadata"""
         self.metadata.update(video_info)
@@ -261,28 +275,99 @@ class Downloads(Model):
         type: DownloadType = DownloadType.VIDEO,
         user_id: int = 0,
         priority: Priority = Priority.NORMAL,
+        playlist_id: Optional[int] = None,
     ):
         """Enhanced download creation"""
         return await cls.create(
             url=url,
             config=config.model_dump() if config else {},
             user_id=user_id,
-            type=type,
+            download_type=type,
             priority=priority,
             status=Status.QUEUED,
+            playlist_id=playlist_id,
+        )
+
+    @classmethod
+    async def create_playlist_child(
+        cls,
+        url: str,
+        parent_id: int,
+        user_id: int = 0,
+        config: Optional[dict] = None,
+        priority: Priority = Priority.NORMAL,
+        title: Optional[str] = None,
+        uploader: Optional[str] = None,
+        duration: Optional[float] = None,
+        filename: Optional[str] = None,
+    ) -> "Downloads":
+        """
+        Create a PLAYLIST_CHILD record for a video that has just finished.
+        Children are always created in FINISHED state — we never pre-create
+        them, so there are no orphaned QUEUED/FAILED rows for skipped videos.
+        """
+        metadata: Dict[str, Any] = {}
+        if title:
+            metadata["title"] = title
+        if uploader:
+            metadata["uploader"] = uploader
+        if duration is not None:
+            metadata["duration"] = duration
+
+        now = utcnow()
+        return await cls.create(
+            url=url,
+            config=config or {},
+            user_id=user_id,
+            download_type=DownloadType.PLAYLIST_CHILD,
+            priority=priority,
+            status=Status.FINISHED,
+            playlist_id=parent_id,
+            filename=filename,
+            metadata=metadata,
+            date_started=now,
+            date_finished=now,
         )
 
     @classmethod
     async def get_user_downloads(
-        cls, user_id: int = 0, status: Optional[Status] = None, as_model: bool = False
+        cls,
+        user_id: int = 0,
+        status: Optional[Status] = None,
+        as_model: bool = False,
     ):
-        """Get downloads for a specific user"""
-        query = cls.filter(user_id=user_id)
+        """
+        Get top-level downloads for a user.
+        PLAYLIST_CHILD rows are intentionally excluded — they are only
+        accessible via get_playlist_children().
+        """
+        query = cls.filter(
+            user_id=user_id,
+            download_type__not=DownloadType.PLAYLIST_CHILD,
+        )
         if status:
             query = query.filter(status=status)
         result = await query.order_by("-date_created")
         if as_model:
             return [download.to_dict() for download in result]
+        return result
+
+    @classmethod
+    async def get_playlist_children(
+        cls,
+        parent_id: int,
+        as_model: bool = False,
+    ):
+        """
+        Get all child video records belonging to a playlist.
+        Uses the playlist_id FK — fast, exact, no metadata scanning.
+        """
+        result = await cls.filter(
+            playlist_id=parent_id,
+            download_type=DownloadType.PLAYLIST_CHILD,
+        ).order_by("date_created")
+        if as_model:
+            return [c.to_dict() for c in result]
         return result
 
     @classmethod
@@ -334,6 +419,8 @@ class Downloads(Model):
             "config": self.config,
             "thumbnail_path": self.thumbnail_path if self.thumbnail_path else None,
             "metadata": self.metadata if self.metadata else None,
+            "download_type": self.download_type,
+            "playlist_id": self.playlist_id,
         }
 
     async def update_progress(self, progress: DownloadProgress):
@@ -352,11 +439,27 @@ class Downloads(Model):
             ]
         )
 
-    async def delete(self): # type: ignore
+    async def delete(self):  # type: ignore
+        # When deleting a playlist, cascade-delete all its children first
+        if self.download_type == DownloadType.PLAYLIST:
+            children = await Downloads.filter(playlist_id=self.id)
+            for child in children:
+                await child.delete()
+
         await super().delete()
+
+        # Clean up thumbnail files (both <id>.jpg and any custom path)
         filepath = thumbnailsPath / (str(self.id) + ".jpg")
         if filepath.exists():
             filepath.unlink()
+
+        if self.thumbnail_path:
+            custom = Path(self.thumbnail_path)
+            if custom.exists() and custom != filepath:
+                try:
+                    custom.unlink()
+                except Exception:
+                    pass
 
 
 class Users(Model):
@@ -386,7 +489,7 @@ class Users(Model):
 
 TORTOISE_ORM = {
     "connections": {
-        "default": f"sqlite://{str(get_data_path().absolute() / "Mihari.sqlite3")}"
+        "default": f"sqlite://{str(get_data_path().absolute() / 'Mihari.sqlite3')}"
     },
     "apps": {
         "models": {

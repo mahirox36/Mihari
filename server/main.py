@@ -1,66 +1,70 @@
 import asyncio
-from contextlib import asynccontextmanager
 import logging
-from logging.handlers import RotatingFileHandler
 import os
-from pathlib import Path
-import re
 import sys
+import uuid
+from contextlib import asynccontextmanager
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 from typing import Optional
+
+import aiohttp
+import uvicorn
+from asyncyt import (
+    AsyncYT,
+    AudioFormat,
+    DownloadConfig,
+    DownloadGotCanceledError,
+    DownloadProgress,
+    DownloadRequest,
+    DownloadResponse,
+    HealthResponse,
+    PlaylistRequest,
+    PlaylistResponse,
+    PlaylistVideoInfo,
+    Quality,
+    SearchRequest,
+    SearchResponse,
+    VideoFormat,
+    VideoInfo,
+)
+from asyncyt.basemodels import PlaylistConfig, PlaylistDownloadProgress
+from asyncyt.exceptions import YtdlpDownloadError
 from fastapi import (
-    FastAPI,
+    APIRouter,
     BackgroundTasks,
+    FastAPI,
     HTTPException,
     WebSocket,
     WebSocketDisconnect,
-    APIRouter,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from tortoise.contrib.fastapi import register_tortoise
 from pydantic import BaseModel
-import uvicorn
-import uuid
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.theme import Theme
-from asyncyt import (
-    AsyncYT,
-    DownloadGotCanceledError,
-    DownloadRequest,
-    SearchRequest,
-    PlaylistRequest,
-    DownloadResponse,
-    SearchResponse,
-    PlaylistResponse,
-    HealthResponse,
-    DownloadProgress,
-    VideoInfo,
-    DownloadConfig,
-    Quality,
-    AudioFormat,
-    VideoFormat,
-    DownloadNotFoundError,
-    get_unique_path,
+from tortoise.contrib.fastapi import register_tortoise
+
+from libs.basemodels import (
+    GetSettings,
+    Preset,
+    PresetExport,
+    PresetPath,
+    SaveSettings,
 )
-from asyncyt.utils import get_unique_filename
 from libs.Models import (
     TORTOISE_ORM,
-    DownloadType,
     Downloads,
+    DownloadType,
+    Status,
     Update,
     Users,
     decode_presets_from_base64,
     encode_presets_to_base64,
     get_data_path,
     is_bundled,
-)
-from libs.basemodels import (
-    GetSettings,
-    Preset,
-    PresetExport,
-    PresetPath,
-    PresetPath,
-    SaveSettings,
+    thumbnailsPath,
+    utcnow,
 )
 
 downloader: AsyncYT = AsyncYT(get_data_path() / "bin")
@@ -99,14 +103,13 @@ root_logger = logging.getLogger()
 root_logger.setLevel(logging.DEBUG)
 root_logger.handlers.clear()
 
-# Add handlers to root logger
 root_logger.addHandler(rich_handler)
 root_logger.addHandler(file_handler)
 
 for name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
     logger = logging.getLogger(name)
     logger.handlers.clear()
-    logger.propagate = False  # Prevent double logs
+    logger.propagate = False
     logger.setLevel(logging.DEBUG if "access" not in name else logging.INFO)
     logger.addHandler(rich_handler)
     root_logger.addHandler(file_handler)
@@ -127,10 +130,30 @@ sys.excepthook = handle_exception
 logger = logging.getLogger(__name__)
 
 
+async def recover_stuck_downloads():
+    """
+    On startup, any download still in QUEUED or DOWNLOADING state was
+    interrupted unexpectedly (crash / force-quit). Mark them as FAILED so
+    they don't appear stuck as 'Active' forever in the history UI.
+    """
+    stuck = await Downloads.filter(status__in=[Status.QUEUED, Status.DOWNLOADING])
+    if stuck:
+        logger.warning(
+            f"Recovering {len(stuck)} stuck download(s) left from a previous session."
+        )
+        for dl in stuck:
+            dl.status = Status.FAILED
+            dl.error = "Interrupted: application was closed or crashed."
+            await dl.save(update_fields=["status", "error"])
+        logger.info("Stuck downloads marked as failed.")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Updating Database")
-    logger.info(f"sqlite://{str(get_data_path().absolute() / "Mihari.sqlite3")}")
+    logger.info("Root Folder:")
+    logger.info(get_data_path().absolute())
+    logger.info(f"sqlite://{str(get_data_path().absolute() / 'Mihari.sqlite3')}")
     logger.info("http://0.0.0.0:8153/api/docs")
     result = await Update()
     if result is True:
@@ -139,6 +162,8 @@ async def lifespan(app: FastAPI):
         logger.info("No Need for Update")
     else:
         logger.warning("Something went wrong while Updating")
+
+    await recover_stuck_downloads()
 
     if not is_bundled():
         logger.info("initializing AsyncYT.. (In dev mode)")
@@ -179,7 +204,6 @@ async def health_check():
     """Check API and binary health status"""
     if not downloader:
         raise HTTPException(status_code=503, detail="Downloader not initialized")
-
     return await downloader.health_check()
 
 
@@ -188,7 +212,6 @@ async def get_video_info(url: str):
     """Get detailed information about a video"""
     if not downloader:
         raise HTTPException(status_code=503, detail="Downloader not initialized")
-
     try:
         info = await downloader.get_video_info(url)
         return info
@@ -199,12 +222,26 @@ async def get_video_info(url: str):
         )
 
 
+@api.get("/playlist/info", tags=["Playlist"])
+async def get_playlist_info(url: str, max_videos: Optional[int] = None):
+    """Get playlist metadata without downloading"""
+    if not downloader:
+        raise HTTPException(status_code=503, detail="Downloader not initialized")
+    try:
+        info = await downloader.get_playlist(url, max_videos=max_videos)
+        return info.model_dump()
+    except Exception as e:
+        console.print_exception(show_locals=True)
+        raise HTTPException(
+            status_code=400, detail=f"Failed to get playlist info: {str(e)}"
+        )
+
+
 @api.post("/search", response_model=SearchResponse, tags=["Search"])
 async def search_videos(request: SearchRequest):
     """Search for videos on YouTube"""
     if not downloader:
         raise HTTPException(status_code=503, detail="Downloader not initialized")
-
     return await downloader.search(request=request)
 
 
@@ -213,7 +250,6 @@ async def download_video(request: DownloadRequest, background_tasks: BackgroundT
     """Download a single video"""
     if not downloader:
         raise HTTPException(status_code=503, detail="Downloader not initialized")
-
     download = await Downloads.create_download(request.url, request.config)
     try:
         await download.start_download()
@@ -244,13 +280,9 @@ async def download_video_async(
     """Start an async download and return task ID for progress tracking"""
     if not downloader:
         raise HTTPException(status_code=503, detail="Downloader not initialized")
-
     download = await Downloads.create_download(request.url, request.config)
-
     progress_callback = create_progress_callback(download)
-
     background_tasks.add_task(download_async, request, progress_callback, download)
-
     return {"id": download.id, "message": "Download started", "status": "processing"}
 
 
@@ -268,12 +300,27 @@ async def download_playlist(request: PlaylistRequest):
     """Download an entire playlist"""
     if not downloader:
         raise HTTPException(status_code=503, detail="Downloader not initialized")
-
-    download = await Downloads.create_download(request.url, request.playlist_config, type=DownloadType.PLAYLIST)
+    download = await Downloads.create_download(
+        request.url,
+        request.playlist_config.item_config if request.playlist_config else None,
+        type=DownloadType.PLAYLIST,
+    )
     try:
         await download.start_download()
         response = await downloader.download_playlist(request=request)
         await download.determine_success(response)
+
+        if response.success and response.playlist_info:
+            download.metadata.update(
+                {
+                    "title": response.playlist_info.title or "",
+                    "uploader": response.playlist_info.uploader or "",
+                    "total_videos": response.total_videos,
+                    "successful_downloads": response.successful_downloads,
+                }
+            )
+            await download.save(update_fields=["metadata"])
+
         return response
     except Exception as e:
         await download.set_failed(str(e))
@@ -294,7 +341,6 @@ async def get_supported_formats():
 async def validate_config(config: DownloadConfig):
     """Validate a download configuration"""
     try:
-
         return {"valid": True, "config": config.model_dump()}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid configuration: {str(e)}")
@@ -312,12 +358,9 @@ async def batch_download(
     """Download multiple videos in batch"""
     if not downloader:
         raise HTTPException(status_code=503, detail="Downloader not initialized")
-
     if len(request.urls) > 50:
         raise HTTPException(status_code=400, detail="Maximum 50 URLs per batch")
-
     batch_id = str(uuid.uuid4())
-
     results = []
     for url in request.urls:
         try:
@@ -326,12 +369,12 @@ async def batch_download(
             results.append({"url": url, "result": result.model_dump()})
         except Exception as e:
             results.append({"url": url, "error": str(e)})
-
     return {"batch_id": batch_id, "total_urls": len(request.urls), "results": results}
 
 
 @api.get("/history", tags=["Other"])
 async def get_history():
+    # Returns only top-level downloads (VIDEO + PLAYLIST), never PLAYLIST_CHILD
     return await Downloads.get_user_downloads(as_model=True)
 
 
@@ -340,19 +383,103 @@ async def delete_history(id: int):
     item = await Downloads.get_or_none(id=id)
     if not item:
         raise HTTPException(404, detail="History Item not found")
+    # Downloads.delete() already cascades to PLAYLIST_CHILD rows
     await item.delete()
+
+
+@api.get("/history/playlist/{id}/children", tags=["Other"])
+async def get_playlist_children(id: int):
+    """
+    Get individual video download records that belong to a playlist download.
+    Uses the playlist_id FK for an exact, fast query — no metadata scanning.
+    """
+    parent = await Downloads.get_or_none(id=id)
+    if not parent:
+        raise HTTPException(404, detail="Playlist not found")
+    if parent.download_type != DownloadType.PLAYLIST:
+        raise HTTPException(400, detail="Download is not a playlist")
+
+    return await Downloads.get_playlist_children(parent_id=id, as_model=True)
+
+
+@api.delete("/history/playlist/child/{id}", tags=["Other"])
+async def delete_playlist_child(id: int):
+    """Delete a single video from a playlist history"""
+    child = await Downloads.get_or_none(
+        id=id, download_type=DownloadType.PLAYLIST_CHILD
+    )
+    if not child:
+        raise HTTPException(404, detail="Child video not found")
+
+    parent_id = child.playlist_id
+    await child.delete()
+
+    # Rebuild child_thumbnails on the parent
+    if parent_id:
+        try:
+            parent = await Downloads.get_or_none(
+                id=parent_id, download_type=DownloadType.PLAYLIST
+            )
+            if parent:
+                remaining = await Downloads.filter(
+                    playlist_id=parent_id,
+                    download_type=DownloadType.PLAYLIST_CHILD,
+                ).all()
+                child_thumbnails = [
+                    c.thumbnail_path for c in remaining if c.thumbnail_path
+                ][:3]
+                if isinstance(parent.metadata, dict):
+                    parent.metadata["child_thumbnails"] = child_thumbnails
+                    await parent.save(update_fields=["metadata"])
+        except Exception as e:
+            logger.warning(f"Failed to update parent playlist metadata: {e}")
+
+    return {"status": "success", "message": "Child video deleted"}
+
+
+@api.post("/history/playlist/child/{id}/open", tags=["Other"])
+async def open_playlist_child(id: int):
+    """Get the file path for a playlist child video to open in folder"""
+    child = await Downloads.get_or_none(
+        id=id, download_type=DownloadType.PLAYLIST_CHILD
+    )
+    if not child:
+        raise HTTPException(404, detail="Child video not found")
+
+    if child.status != Status.FINISHED:
+        raise HTTPException(400, detail="Video is not finished")
+
+    if not isinstance(child.config, dict):
+        raise HTTPException(400, detail="Invalid configuration")
+
+    output_path = child.config.get("output_path")
+    if not output_path:
+        raise HTTPException(400, detail="Output path not configured")
+
+    filename = child.filename
+    if not filename:
+        raise HTTPException(400, detail="Filename not available")
+
+    file_path = Path(output_path) / filename  # type: ignore
+
+    if not file_path.exists():
+        raise HTTPException(404, detail=f"File not found: {str(file_path)}")
+
+    if not file_path.is_file():
+        raise HTTPException(400, detail="Path is not a file")
+
+    return {"file_path": str(file_path)}
 
 
 @api.websocket("/ws/download")
 async def websocket_download(websocket: WebSocket):
-    """WebSocket endpoint for real-time download progress with multiple download support"""
+    """WebSocket endpoint for real-time download + playlist progress"""
     await websocket.accept()
 
-    # Configuration
-    IDLE_TIMEOUT = 300  # 5 minutes of inactivity before closing
+    IDLE_TIMEOUT = 300
 
-    # Track multiple downloads by ID
-    active_downloads = {}  # Dict[str, asyncio.Task]
+    active_downloads = {}  # download_id → asyncio.Task (single videos)
+    active_playlists = {}  # playlist_id → asyncio.Task
     last_activity = asyncio.get_event_loop().time()
 
     async def send_heartbeat():
@@ -364,38 +491,113 @@ async def websocket_download(websocket: WebSocket):
             await asyncio.sleep(HEARTBEAT_INTERVAL)
 
     async def handle_messages():
-        """Handle incoming WebSocket messages"""
         nonlocal last_activity
         try:
             while True:
                 data = await websocket.receive_json()
                 last_activity = asyncio.get_event_loop().time()
 
-                if data.get("type", "") == "pong":
-                    # Handle pong responses
+                msg_type = data.get("type", "")
+
+                if msg_type == "pong":
                     continue
-                elif data.get("type", "") == "cancel":
+
+                elif msg_type == "cancel":
                     download_id = data.get("id")
                     if download_id and download_id in active_downloads:
-                        task = active_downloads.pop(download_id)  # remove it first
-                        task.cancel()                              # cancel the wrapper task
+                        task = active_downloads.pop(download_id)
+                        task.cancel()
                         try:
                             await task
                         except asyncio.CancelledError:
                             pass
-                        await websocket.send_json({"type": "cancelled", "id": download_id})
+                        await websocket.send_json(
+                            {"type": "cancelled", "id": download_id}
+                        )
                     else:
-                        await websocket.send_json({
-                            "type": "error",
-                            "id": download_id,
-                            "data": {"error": "Download not found or already completed"}
-                        })
-                else:
-                    # Start new download
-                    request = DownloadRequest(**data)
-                    download_id = getattr(request, "id", None) or str(uuid.uuid4())
+                        await websocket.send_json(
+                            {
+                                "type": "error",
+                                "id": download_id,
+                                "data": {
+                                    "error": "Download not found or already completed"
+                                },
+                            }
+                        )
 
-                    # Check if this download ID is already active
+                elif msg_type == "cancel_playlist":
+                    playlist_id = data.get("id")
+                    if playlist_id and playlist_id in active_playlists:
+                        task = active_playlists.pop(playlist_id)
+                        task.cancel()
+                        try:
+                            await task
+                        except asyncio.CancelledError:
+                            pass
+                        await websocket.send_json(
+                            {"type": "playlist_cancelled", "playlist_id": playlist_id}
+                        )
+                    else:
+                        await websocket.send_json(
+                            {
+                                "type": "error",
+                                "data": {
+                                    "error": "Playlist not found or already completed"
+                                },
+                            }
+                        )
+
+                elif msg_type == "playlist":
+                    playlist_id = data.get("playlist_id") or str(uuid.uuid4())
+                    url = data.get("url")
+                    raw_playlist_config = data.get("playlist_config")
+                    if not url:
+                        await websocket.send_json(
+                            {
+                                "type": "playlist_error",
+                                "playlist_id": playlist_id,
+                                "data": {"error": "Missing URL"},
+                            }
+                        )
+                        continue
+
+                    if playlist_id in active_playlists:
+                        await websocket.send_json(
+                            {
+                                "type": "error",
+                                "data": {
+                                    "error": f"Playlist {playlist_id} already active"
+                                },
+                            }
+                        )
+                        continue
+
+                    try:
+                        playlist_config = (
+                            PlaylistConfig(**raw_playlist_config)
+                            if raw_playlist_config
+                            else PlaylistConfig()
+                        )
+                    except Exception as e:
+                        await websocket.send_json(
+                            {
+                                "type": "playlist_error",
+                                "playlist_id": playlist_id,
+                                "data": {"error": f"Invalid playlist_config: {e}"},
+                            }
+                        )
+                        continue
+
+                    task = asyncio.create_task(
+                        process_playlist(url, playlist_config, playlist_id)
+                    )
+                    active_playlists[playlist_id] = task
+
+                else:
+                    # Single video download
+                    request = DownloadRequest(**data)
+                    download_id = str(uuid.uuid4())
+
                     if download_id in active_downloads:
                         await websocket.send_json(
                             {
@@ -408,11 +610,8 @@ async def websocket_download(websocket: WebSocket):
                         )
                         continue
 
-                    # Start download in background
-                    download_task = asyncio.create_task(
-                        process_download(request, download_id)
-                    )
-                    active_downloads[download_id] = download_task
+                    task = asyncio.create_task(process_download(request, download_id))
+                    active_downloads[download_id] = task
 
         except WebSocketDisconnect:
             logger.info("Client disconnected")
@@ -420,9 +619,7 @@ async def websocket_download(websocket: WebSocket):
             logger.warning(f"Message handling error: {e}")
 
     async def process_download(request: DownloadRequest, download_id: str):
-        """Process download in background while allowing message handling"""
         nonlocal last_activity
-
         if not request.config:
             request.config = DownloadConfig()
         download = await Downloads.create_download(request.url, request.config)
@@ -433,10 +630,8 @@ async def websocket_download(websocket: WebSocket):
             async def ws_progress_callback(progress: DownloadProgress):
                 nonlocal last_activity
                 try:
-                    # Ensure progress includes the download ID
                     progress_data = progress.model_dump()
                     progress_data["id"] = download_id
-
                     await websocket.send_json(
                         {"type": "progress", "id": download_id, "data": progress_data}
                     )
@@ -444,25 +639,25 @@ async def websocket_download(websocket: WebSocket):
                 except Exception as e:
                     logger.warning(f"Failed to send progress for {download_id}: {e}")
 
-            # Handle format configuration
             if request.config and request.config.video_format:
                 request.config.video_format = VideoFormat(request.config.video_format)
             if request.config and request.config.audio_format:
                 request.config.audio_format = AudioFormat(request.config.audio_format)
 
-            if request.config.encoding and request.config.encoding.video and request.config.encoding.video.codec == None:
+            if (
+                request.config.encoding
+                and request.config.encoding.video
+                and request.config.encoding.video.codec is None
+            ):
                 request.config.encoding.video.preset = None
-                
-            
+
             await download.start_download()
 
-            # Run video info retrieval and download concurrently
             info_task = asyncio.create_task(downloader.get_video_info(request.url))
             inner_download_task = asyncio.create_task(
                 downloader.download(request, ws_progress_callback, finalize=True)
             )
 
-            # Wait for video info first and send it immediately when available
             try:
                 data = await asyncio.wait_for(info_task, timeout=30.0)
                 await websocket.send_json(
@@ -471,23 +666,30 @@ async def websocket_download(websocket: WebSocket):
                 await download.setInfo(data.model_dump())
             except Exception as e:
                 logger.warning(f"Failed to get video info for {download_id}: {e}")
-                # If video info fails, we can still continue with download
                 data = None
 
-            # Wait for download to complete
-            file = await inner_download_task
+            try:
+                file = await inner_download_task
+            except YtdlpDownloadError as e:
+                logger.exception(e)
+                logger.error(f"More info: \n {e.cmd} \n {e.output} \n {e.error_code}")
+                await download.set_failed(str(e))
+                await websocket.send_json(
+                    {"type": "error", "id": download_id, "data": {"error": str(e)}}
+                )
+                last_activity = asyncio.get_event_loop().time()
+                return
 
             result = DownloadResponse(
                 success=True,
                 message="Download completed successfully",
-                filename=str(file.absolute()),
+                filename=file.name,
                 video_info=data,
                 id=download_id,
             )
 
             await download.determine_success(result)
 
-            # Ensure result includes the download ID
             result_data = result.model_dump()
             result_data["id"] = download_id
 
@@ -503,7 +705,6 @@ async def websocket_download(websocket: WebSocket):
             last_activity = asyncio.get_event_loop().time()
 
         except DownloadGotCanceledError:
-            # Handle cancellation gracefully
             await download.set_canceled()
             await websocket.send_json(
                 {
@@ -512,7 +713,10 @@ async def websocket_download(websocket: WebSocket):
                     "data": {"error": "Download cancelled"},
                 }
             )
-            # raise  # Re-raise to properly handle cancellation
+        except asyncio.CancelledError:
+            await download.set_canceled()
+            await websocket.send_json({"type": "cancelled", "id": download_id})
+            raise
         except Exception as e:
             console.print_exception()
             await download.set_failed(str(e))
@@ -520,82 +724,304 @@ async def websocket_download(websocket: WebSocket):
                 {"type": "error", "id": download_id, "data": {"error": str(e)}}
             )
             last_activity = asyncio.get_event_loop().time()
-
         finally:
-            # Clean up this download from active downloads
             active_downloads.pop(download_id, None)
 
+    async def process_playlist(
+        url: str, playlist_config: PlaylistConfig, playlist_id: str
+    ):
+        """
+        Handle a full playlist download with per-video WebSocket progress.
+
+        Child DB records are created ONLY after a video fully completes so
+        that the real output filename (with extension) is available from
+        result.filepath.  The progress callback is used only for live
+        WebSocket updates — it never writes DB rows.
+        """
+        nonlocal last_activity
+
+        # Normalize enum values in item_config before anything else
+        if playlist_config.item_config:
+            if playlist_config.item_config.video_format:
+                playlist_config.item_config.video_format = VideoFormat(
+                    playlist_config.item_config.video_format
+                )
+            if playlist_config.item_config.audio_format:
+                playlist_config.item_config.audio_format = AudioFormat(
+                    playlist_config.item_config.audio_format
+                )
+
+        # Create the parent playlist record
+        download = await Downloads.create_download(
+            url,
+            playlist_config.item_config,
+            type=DownloadType.PLAYLIST,
+        )
+        await download.start_download()
+
+        item_config_dict = (
+            playlist_config.item_config.model_dump()
+            if playlist_config.item_config
+            else {}
+        )
+
+        # url → child DB row, populated after each video fully finishes
+        finished_children: dict[str, Downloads] = {}
+        # Claimed URLs — checked+written before any await to prevent duplicates
+        _saving_urls: set[str] = set()
+
+        async def _save_child(
+            video_info: PlaylistVideoInfo,
+            filepath: Optional[str],
+        ) -> None:
+            """
+            Create and persist a child DB record for a completed video.
+
+            :param video_info: Metadata from the playlist entry.
+            :param filepath: The real output path returned by yt-dlp (includes ext).
+                            Pass None only as a last-resort fallback.
+            """
+            child_url = video_info.url
+            if not child_url:
+                return
+
+            # Synchronous check+claim — race-free in asyncio (no await between
+            # the check and the set.add so the event loop cannot switch tasks here)
+            if child_url in finished_children or child_url in _saving_urls:
+                return
+            _saving_urls.add(child_url)
+
+            try:
+                # Derive the bare filename from the real output path so the DB
+                # row stores "video.mp3" / "video.webm" rather than "video"
+                filename: Optional[str] = None
+                if filepath:
+                    filename = Path(filepath).name  # e.g. "My Video Title.mp3"
+
+                thumbnail_path: str | None = None
+                thumbnail_url = video_info.thumbnail
+                title = video_info.title
+                uploader = video_info.uploader
+                duration = video_info.duration
+
+                child = await Downloads.create_playlist_child(
+                    url=child_url,
+                    parent_id=download.id,
+                    user_id=download.user_id,
+                    config=item_config_dict,
+                    priority=download.priority,
+                    title=title,
+                    uploader=uploader,
+                    duration=duration,
+                    filename=filename,  # real filename with extension
+                )
+
+                if thumbnail_url:
+                    try:
+                        thumb_path = thumbnailsPath / f"{child.id}.jpg"
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(
+                                thumbnail_url,
+                                timeout=aiohttp.ClientTimeout(total=10),
+                                ssl=False,
+                            ) as resp:
+                                if resp.status == 200:
+                                    content = await resp.read()
+                                    if content and len(content) > 100:
+                                        thumb_path.parent.mkdir(
+                                            parents=True, exist_ok=True
+                                        )
+                                        thumb_path.write_bytes(content)
+                                        thumbnail_path = str(thumb_path)
+                    except Exception as thumb_err:
+                        logger.debug(
+                            f"Thumbnail download failed for child {child.id}: {thumb_err}"
+                        )
+
+                child.status = Status.FINISHED
+                child.date_started = utcnow()
+                child.date_finished = utcnow()
+                if thumbnail_path:
+                    child.thumbnail_path = thumbnail_path
+
+                await child.save(
+                    update_fields=[
+                        "status",
+                        "date_started",
+                        "date_finished",
+                        "thumbnail_path",
+                    ]
+                )
+
+                finished_children[child_url] = child
+                logger.info(
+                    f"Child {child.id} saved — playlist {download.id} "
+                    f"— {title or child_url} [{filename or 'no filename'}]"
+                )
+
+            except Exception as save_err:
+                # Release claim so a retry is possible
+                _saving_urls.discard(child_url)
+                raise save_err
+
+        async def playlist_progress_cb(pl_progress: PlaylistDownloadProgress):
+            """Forward live progress to the WebSocket — no DB writes here."""
+            nonlocal last_activity
+            try:
+                await websocket.send_json(
+                    {
+                        "type": "playlist_progress",
+                        "playlist_id": playlist_id,
+                        "data": pl_progress.model_dump(),
+                    }
+                )
+                last_activity = asyncio.get_event_loop().time()
+            except Exception as e:
+                logger.warning(
+                    f"Failed to send playlist progress over WebSocket: {e}",
+                    exc_info=True,
+                )
+
+        try:
+            response = await downloader.download_playlist(
+                url=url,
+                playlist_config=playlist_config,
+                progress_callback=playlist_progress_cb,
+            )
+
+            # Save every successful video now that yt-dlp has finished writing
+            # files and result.filepath contains the real path with extension.
+            for result in response.results:
+                if result.success and result.video_info:
+                    try:
+                        await _save_child(
+                            video_info=result.video_info,
+                            filepath=result.filepath,  # e.g. "/downloads/My Video.mp3"
+                        )
+                    except Exception as save_err:
+                        logger.warning(
+                            f"Child save failed for {result.video_info.url}: {save_err}",
+                            exc_info=True,
+                        )
+
+            await download.determine_success(response)
+
+            child_thumbnails = [
+                c.thumbnail_path for c in finished_children.values() if c.thumbnail_path
+            ][:3]
+
+            meta_update: dict = {
+                "successful_downloads": len(finished_children),
+                "child_thumbnails": child_thumbnails,
+            }
+            if response.playlist_info:
+                pl_info = response.playlist_info
+                meta_update.update(
+                    {
+                        "title": pl_info.title or "",
+                        "uploader": pl_info.uploader or "",
+                        "total_videos": response.total_videos,
+                        "successful_downloads": response.successful_downloads
+                        or len(finished_children),
+                    }
+                )
+
+            download.metadata.update(meta_update)
+            await download.save(update_fields=["metadata"])
+
+            logger.info(
+                f"Playlist {download.id} complete — {len(finished_children)} video(s) saved"
+            )
+
+            await websocket.send_json(
+                {
+                    "type": "playlist_complete",
+                    "playlist_id": playlist_id,
+                    "data": response.model_dump(),
+                }
+            )
+
+        except asyncio.CancelledError:
+            await download.set_canceled()
+            await websocket.send_json(
+                {"type": "playlist_cancelled", "playlist_id": playlist_id}
+            )
+            raise
+        except Exception as e:
+            console.print_exception()
+            await download.set_failed(str(e))
+            logger.error(f"Playlist download error: {e}", exc_info=True)
+            await websocket.send_json(
+                {
+                    "type": "playlist_error",
+                    "playlist_id": playlist_id,
+                    "data": {"error": str(e)},
+                }
+            )
+        finally:
+            active_playlists.pop(playlist_id, None)
+
     async def handle_idle_timeout():
-        """Monitor for idle timeout and close connection if inactive"""
         nonlocal last_activity
         while True:
             try:
-                await asyncio.sleep(30)  # Check every 30 seconds
+                await asyncio.sleep(30)
                 current_time = asyncio.get_event_loop().time()
                 idle_time = current_time - last_activity
-
-                # Only close if no downloads are active
-                if idle_time >= IDLE_TIMEOUT and not active_downloads:
+                if (
+                    idle_time >= IDLE_TIMEOUT
+                    and not active_downloads
+                    and not active_playlists
+                ):
                     logger.info(
                         f"Closing WebSocket due to idle timeout ({idle_time:.1f}s)"
                     )
                     await websocket.close(code=1000, reason="Idle timeout")
                     break
-
             except Exception as e:
                 logger.warning(f"Idle timeout handler error: {e}")
                 break
 
-    async def cleanup_completed_downloads():
-        """Periodically clean up completed download tasks"""
+    async def cleanup_completed():
         while True:
             try:
-                await asyncio.sleep(60)  # Check every minute
-                completed_ids = []
-
-                for download_id, task in active_downloads.items():
-                    if task.done():
-                        completed_ids.append(download_id)
-
-                for download_id in completed_ids:
-                    del active_downloads[download_id]
-
+                await asyncio.sleep(60)
+                for d in [active_downloads, active_playlists]:
+                    completed = [k for k, v in d.items() if v.done()]
+                    for k in completed:
+                        del d[k]
             except Exception as e:
                 logger.warning(f"Cleanup task error: {e}")
                 break
 
-    # Start all background tasks
     heartbeat_task = asyncio.create_task(send_heartbeat())
     message_task = asyncio.create_task(handle_messages())
     timeout_task = asyncio.create_task(handle_idle_timeout())
-    cleanup_task = asyncio.create_task(cleanup_completed_downloads())
+    cleanup_task = asyncio.create_task(cleanup_completed())
 
     try:
         done, pending = await asyncio.wait(
             [heartbeat_task, message_task, timeout_task, cleanup_task],
             return_when=asyncio.FIRST_COMPLETED,
         )
-
         for task in pending:
             task.cancel()
             try:
                 await task
             except asyncio.CancelledError:
                 pass
-
     except Exception as e:
         logger.warning(f"WebSocket error: {e}")
     finally:
-        # Cancel all active downloads
-        for download_task in active_downloads.values():
-            if not download_task.done():
-                download_task.cancel()
-                try:
-                    await download_task
-                except asyncio.CancelledError:
-                    pass
+        for task_dict in [active_downloads, active_playlists]:
+            for t in task_dict.values():
+                if not t.done():
+                    t.cancel()
+                    try:
+                        await t
+                    except asyncio.CancelledError:
+                        pass
 
-        # Cancel all background tasks
         for task in [heartbeat_task, message_task, timeout_task, cleanup_task]:
             if not task.done():
                 task.cancel()
@@ -634,23 +1060,17 @@ async def websocket_startup(websocket: WebSocket):
             await asyncio.sleep(HEARTBEAT_INTERVAL)
 
     async def process_startup():
-        """Process startup in background while allowing message handling"""
-
         try:
-
             async for progress in downloader.setup_binaries_generator():
-
                 await websocket.send_json(
                     {"type": "progress", "data": progress.model_dump()}
                 )
             await websocket.send_json({"type": "complete"})
-
         except Exception as e:
             await websocket.send_json({"type": "error", "error": str(e)})
         finally:
             await websocket.close()
 
-    # Start concurrent tasks
     heartbeat_task = asyncio.create_task(send_heartbeat())
     startup_task = asyncio.create_task(process_startup())
 
@@ -659,19 +1079,15 @@ async def websocket_startup(websocket: WebSocket):
             [heartbeat_task, startup_task],
             return_when=asyncio.FIRST_COMPLETED,
         )
-
-        # Cancel remaining tasks
         for task in pending:
             task.cancel()
             try:
                 await task
             except asyncio.CancelledError:
                 pass
-
     except Exception as e:
         logger.warning(f"WebSocket error: {e}")
     finally:
-        # Cleanup
         for task in [heartbeat_task, startup_task]:
             if not task.done():
                 task.cancel()
@@ -679,7 +1095,6 @@ async def websocket_startup(websocket: WebSocket):
                     await task
                 except asyncio.CancelledError:
                     pass
-
         try:
             await websocket.close()
             started_startup = False
@@ -742,7 +1157,6 @@ async def save_preset(request: Preset):
             preset["description"] = request.description
             preset["config"] = request.config
             await user.set_setting("presets", presets)
-
         return {"status": "success"}
     except HTTPException:
         raise
@@ -788,7 +1202,6 @@ async def export_preset(payload: PresetExport):
         preset = next((p for p in presets if p["uuid"] == uuid_), None)
         if not preset:
             raise HTTPException(404, "Preset not found")
-
         encoded = encode_presets_to_base64(preset)
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
@@ -802,17 +1215,13 @@ async def export_preset(payload: PresetExport):
 @api.post("/presets/import", tags=["presets"])
 async def import_preset(payload: PresetPath):
     path = payload.path
-
     try:
         if not os.path.exists(path):
             raise HTTPException(404, "File not found")
-
         with open(path, "r", encoding="utf-8") as f:
             encoded = f.read()
-
         data = decode_presets_from_base64(encoded)
 
-        # Helper to validate preset structure
         def validate_preset(preset):
             required_keys = {"uuid", "name", "description", "config"}
             if not isinstance(preset, dict):
@@ -824,16 +1233,14 @@ async def import_preset(payload: PresetPath):
         presets = user.get_setting("presets", [])
 
         if isinstance(data, dict):
-            # Single preset import
             validate_preset(data)
             existing = next((p for p in presets if p["uuid"] == data["uuid"]), None)
             if existing:
                 existing.update(data)
             else:
                 presets.append(data)
-            msg = f"{data["name"]} Preset imported"
+            msg = f"{data['name']} Preset imported"
         elif isinstance(data, list):
-            # Multiple presets import
             for preset in data:
                 validate_preset(preset)
                 existing = next(
@@ -861,7 +1268,6 @@ async def import_preset(payload: PresetPath):
 @api.post("/presets/export/all", tags=["presets"])
 async def export_all_presets(payload: PresetPath):
     path = payload.path
-
     try:
         user, _ = await Users.get_or_create(id=1)
         presets = user.get_setting("presets", [])

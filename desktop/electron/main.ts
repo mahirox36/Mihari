@@ -70,10 +70,14 @@ const backendName =
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const getIconPath = () => {
+  const isLinux = process.platform === "linux";
+  const iconFile = isLinux ? "icon.png" : "icon.ico";
+
   if (app.isPackaged) {
-    return path.join(process.resourcesPath, "icon.ico");
+    return path.join(process.resourcesPath, iconFile);
   }
-  return path.join(__dirname, "../public/icon.ico");
+  
+  return path.join(__dirname, `../public/${iconFile}`);
 };
 
 const iconPath = getIconPath();
@@ -310,7 +314,7 @@ async function killPythonProcess(): Promise<void> {
 }
 
 function createWindow() {
-  app.setAppUserModelId("online.mahirou.mihari.dashboard");
+  app.setAppUserModelId("online.mahirou.mihari.app");
   win = new BrowserWindow({
     width: 1200,
     height: 850,
@@ -521,10 +525,13 @@ ipcMain.on("window-close", (_event, closeToTray: boolean) => {
 
 function showInFolder(filePath: string) {
   try {
-    if (!fsSync.existsSync(filePath)) {
+    // Normalize path for Windows
+    const normalizedPath = filePath.replace(/\//g, path.sep);
+    if (!fsSync.existsSync(normalizedPath)) {
+      console.error(`File not found: ${normalizedPath}`);
       return { success: false, error: "The specified file could not be found" };
     }
-    shell.showItemInFolder(filePath);
+    shell.showItemInFolder(normalizedPath);
     return { success: true };
   } catch (error: any) {
     console.error("Failed to show in folder:", error);
@@ -533,15 +540,18 @@ function showInFolder(filePath: string) {
 }
 
 ipcMain.handle("show-in-folder", (_event, filePath: string) => {
-  showInFolder(filePath);
+  return showInFolder(filePath);
 });
 
 async function openFile(filePath: string) {
   try {
-    if (!fsSync.existsSync(filePath)) {
+    // Normalize path for Windows
+    const normalizedPath = filePath.replace(/\//g, path.sep);
+    if (!fsSync.existsSync(normalizedPath)) {
+      console.error(`File not found: ${normalizedPath}`);
       return { success: false, error: "The specified file could not be found" };
     }
-    const result = await shell.openPath(filePath);
+    const result = await shell.openPath(normalizedPath);
     if (result) {
       throw new Error(`Failed to open file: ${result}`);
     }
@@ -872,16 +882,48 @@ ipcMain.handle(
           : [],
         closeButtonText: "Close",
       });
+      
       notif.on("click", () => {
-        console.log("Notification clicked!");
-        if (win) win.focus();
+        console.log("Notification clicked - focusing window");
+        if (win) {
+          if (win.isMinimized()) win.restore();
+          win.focus();
+        }
       });
 
       notif.on("action", async (_event, index) => {
-        if (index === 0) {
-          await openFile(filePath);
-        } else if (index === 1) {
-          showInFolder(filePath);
+        console.log("Notification action triggered:", index);
+        try {
+          if (index === 0) {
+            console.log("Opening file:", filePath);
+            const result = await openFile(filePath);
+            if (!result.success) {
+              console.error("Failed to open file:", result.error);
+              new Notification({
+                title: "Error",
+                body: result.error || "Failed to open file",
+                icon: iconPath,
+              }).show();
+            }
+          } else if (index === 1) {
+            console.log("Showing in folder:", filePath);
+            const result = showInFolder(filePath);
+            if (!result.success) {
+              console.error("Failed to show in folder:", result.error);
+              new Notification({
+                title: "Error",
+                body: result.error || "Failed to show in folder",
+                icon: iconPath,
+              }).show();
+            }
+          }
+        } catch (error: any) {
+          console.error("Notification action error:", error);
+          new Notification({
+            title: "Error",
+            body: error.message || "An error occurred",
+            icon: iconPath,
+          }).show();
         }
       });
 

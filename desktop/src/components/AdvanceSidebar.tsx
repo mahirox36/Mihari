@@ -23,7 +23,7 @@ import {
   AudioCodec,
   PixelFormat,
   Preset,
-  TuneOptions,
+  TuneOption,
   VideoCodec,
 } from "../types/enums";
 import { Dropdown } from "./Keys";
@@ -53,6 +53,8 @@ interface AdvanceSidebarProp {
   setRetries: React.Dispatch<React.SetStateAction<number>>;
   fragmentRetries: number;
   setFragmentRetries: React.Dispatch<React.SetStateAction<number>>;
+  concurrentFragments: number;
+  setConcurrentFragments: React.Dispatch<React.SetStateAction<number>>;
   customOptions: string;
   setCustomOptions: React.Dispatch<React.SetStateAction<string>>;
   embedMetadata: boolean;
@@ -76,21 +78,35 @@ function valueOrAuto(value?: string | null) {
 }
 
 function parseArgs(value: string) {
-  return value.split(/\s+/).map((item) => item.trim()).filter(Boolean);
+  return value
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function formatArgs(args: string[]) {
   return args.join(" ");
 }
 
-// Section header
-function SectionHeader({ icon: Icon, label, color }: { icon: any; label: string; color: string }) {
+function SectionHeader({
+  icon: Icon,
+  label,
+  color,
+}: {
+  icon: any;
+  label: string;
+  color: string;
+}) {
   return (
     <div className="flex items-center gap-2 pt-2 pb-1">
-      <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${color}`}>
+      <div
+        className={`flex h-6 w-6 items-center justify-center rounded-lg ${color}`}
+      >
         <Icon className="h-3.5 w-3.5 text-white" />
       </div>
-      <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider">{label}</h3>
+      <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider">
+        {label}
+      </h3>
     </div>
   );
 }
@@ -118,6 +134,8 @@ export function AdvanceSidebar({
   setRetries,
   fragmentRetries,
   setFragmentRetries,
+  concurrentFragments,
+  setConcurrentFragments,
   customOptions,
   setCustomOptions,
   embedMetadata,
@@ -164,7 +182,9 @@ export function AdvanceSidebar({
 
       <div
         className={`fixed top-10 right-0 z-30 h-[calc(100vh-2.5rem)] w-96 max-w-full transform border-l border-white/10 bg-[linear-gradient(160deg,rgba(15,23,42,0.97)_0%,rgba(12,74,110,0.15)_50%,rgba(15,23,42,0.97)_100%)] backdrop-blur-2xl transition-transform duration-300 ease-out ${
-          isOpen ? "translate-x-0 shadow-2xl shadow-black/40" : "translate-x-full"
+          isOpen
+            ? "translate-x-0 shadow-2xl shadow-black/40"
+            : "translate-x-full"
         }`}
       >
         {/* Decorative blobs */}
@@ -178,12 +198,16 @@ export function AdvanceSidebar({
         {/* Header */}
         <div className="relative z-10 flex items-center justify-between border-b border-white/10 px-5 py-4">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-md shadow-cyan-500/20">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-linear-to-br from-cyan-500 to-blue-600 shadow-md shadow-cyan-500/20">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">Advanced Options</h2>
-              <p className="text-xs text-white/50">Encoding, subtitles & more</p>
+              <h2 className="text-base font-bold text-white">
+                Advanced Options
+              </h2>
+              <p className="text-xs text-white/50">
+                Encoding, subtitles & more
+              </p>
             </div>
           </div>
           <button
@@ -196,18 +220,25 @@ export function AdvanceSidebar({
 
         {/* Content */}
         <div className="relative z-10 h-[calc(100%-64px)] overflow-y-auto custom-scrollbar px-5 py-4 space-y-5">
-
           {/* ── VIDEO ENCODING ── */}
-          <SectionHeader icon={Video} label="Video Encoding" color="bg-cyan-600" />
+          <SectionHeader
+            icon={Video}
+            label="Video Encoding"
+            color="bg-cyan-600"
+          />
 
           <div className="space-y-3">
             {/* Video Codec */}
             <div className="rounded-xl bg-white/5 border border-white/8 p-3">
               <div className="flex items-center gap-2 mb-1">
                 <Video className="h-3.5 w-3.5 text-cyan-400" />
-                <span className="text-xs font-semibold text-white/80">Video Codec</span>
+                <span className="text-xs font-semibold text-white/80">
+                  Video Codec
+                </span>
               </div>
-              <p className="text-xs text-white/40 mb-2">Auto = backend default. Force only when needed.</p>
+              <p className="text-xs text-white/40 mb-2">
+                Auto = backend default. Force only when needed.
+              </p>
               <Dropdown
                 items={[
                   { label: "Auto (Recommended)", value: AUTO_VALUE },
@@ -217,7 +248,12 @@ export function AdvanceSidebar({
                   })),
                 ]}
                 value={valueOrAuto(videoEncoding.codec)}
-                onSelect={(val) => updateVideoEncoding({ codec: val === AUTO_VALUE ? AUTO_VALUE : (val as VideoCodec) })}
+                onSelect={(val) =>
+                  updateVideoEncoding({
+                    codec:
+                      val === AUTO_VALUE ? AUTO_VALUE : (val as VideoCodec),
+                  })
+                }
                 placeholder="Auto"
                 variant="default"
                 size="sm"
@@ -230,7 +266,9 @@ export function AdvanceSidebar({
               name="Video Bitrate"
               description="e.g. 2500k. Leave blank to let encoder decide."
               value={videoEncoding.bitrate ?? ""}
-              setValue={(v) => updateVideoEncoding({ bitrate: v.trim() || null })}
+              setValue={(v) =>
+                updateVideoEncoding({ bitrate: v.trim() || null })
+              }
               placeholder="2500k"
               icon={Gauge}
             />
@@ -249,16 +287,27 @@ export function AdvanceSidebar({
             <div className="rounded-xl bg-white/5 border border-white/8 p-3">
               <div className="flex items-center gap-2 mb-1">
                 <Clock className="h-3.5 w-3.5 text-cyan-400" />
-                <span className="text-xs font-semibold text-white/80">Encoding Preset</span>
+                <span className="text-xs font-semibold text-white/80">
+                  Encoding Preset
+                </span>
               </div>
-              <p className="text-xs text-white/40 mb-2">Slower = better compression.</p>
+              <p className="text-xs text-white/40 mb-2">
+                Slower = better compression.
+              </p>
               <Dropdown
                 items={[
                   { label: "Auto", value: AUTO_VALUE },
-                  ...Object.entries(Preset).map(([label, value]) => ({ label, value })),
+                  ...Object.entries(Preset).map(([label, value]) => ({
+                    label,
+                    value,
+                  })),
                 ]}
                 value={valueOrAuto(videoEncoding.preset)}
-                onSelect={(val) => updateVideoEncoding({ preset: val === AUTO_VALUE ? null : (val as Preset) })}
+                onSelect={(val) =>
+                  updateVideoEncoding({
+                    preset: val === AUTO_VALUE ? null : (val as Preset),
+                  })
+                }
                 placeholder="Auto"
                 variant="default"
                 size="sm"
@@ -267,19 +316,26 @@ export function AdvanceSidebar({
               />
             </div>
 
-            {/* Tune */}
+            {/* Tune — updated to TuneOption (no trailing s) */}
             <div className="rounded-xl bg-white/5 border border-white/8 p-3">
               <div className="flex items-center gap-2 mb-1">
                 <SlidersHorizontal className="h-3.5 w-3.5 text-cyan-400" />
-                <span className="text-xs font-semibold text-white/80">Tune</span>
+                <span className="text-xs font-semibold text-white/80">
+                  Tune
+                </span>
               </div>
               <Dropdown
                 items={[
                   { label: "Auto", value: AUTO_VALUE },
-                  ...Object.entries(TuneOptions).map(([label, value]) => ({ label, value })),
+                  ...Object.entries(TuneOption).map(([label, value]) => ({
+                    label,
+                    value,
+                  })),
                 ]}
                 value={valueOrAuto(videoEncoding.tune)}
-                onSelect={(val) => updateVideoEncoding({ tune: val === AUTO_VALUE ? null : val })}
+                onSelect={(val) =>
+                  updateVideoEncoding({ tune: val === AUTO_VALUE ? null : val })
+                }
                 placeholder="Auto"
                 variant="default"
                 size="sm"
@@ -292,15 +348,24 @@ export function AdvanceSidebar({
             <div className="rounded-xl bg-white/5 border border-white/8 p-3">
               <div className="flex items-center gap-2 mb-1">
                 <Layers3 className="h-3.5 w-3.5 text-cyan-400" />
-                <span className="text-xs font-semibold text-white/80">Pixel Format</span>
+                <span className="text-xs font-semibold text-white/80">
+                  Pixel Format
+                </span>
               </div>
               <Dropdown
                 items={[
                   { label: "Auto", value: AUTO_VALUE },
-                  ...Object.entries(PixelFormat).map(([label, value]) => ({ label, value })),
+                  ...Object.entries(PixelFormat).map(([label, value]) => ({
+                    label,
+                    value,
+                  })),
                 ]}
                 value={valueOrAuto(videoEncoding.pixel_format)}
-                onSelect={(val) => updateVideoEncoding({ pixel_format: val === AUTO_VALUE ? null : val })}
+                onSelect={(val) =>
+                  updateVideoEncoding({
+                    pixel_format: val === AUTO_VALUE ? null : val,
+                  })
+                }
                 placeholder="Auto"
                 variant="default"
                 size="sm"
@@ -345,23 +410,33 @@ export function AdvanceSidebar({
               name="Video Extra Args"
               description="Extra codec-specific args separated by spaces."
               value={formatArgs(videoEncoding.extra_args)}
-              setValue={(v) => updateVideoEncoding({ extra_args: parseArgs(v) })}
+              setValue={(v) =>
+                updateVideoEncoding({ extra_args: parseArgs(v) })
+              }
               placeholder="-profile:v high"
               icon={Video}
             />
           </div>
 
           {/* ── AUDIO ENCODING ── */}
-          <SectionHeader icon={Volume2} label="Audio Encoding" color="bg-purple-600" />
+          <SectionHeader
+            icon={Volume2}
+            label="Audio Encoding"
+            color="bg-purple-600"
+          />
 
           <div className="space-y-3">
             {/* Audio Codec */}
             <div className="rounded-xl bg-white/5 border border-white/8 p-3">
               <div className="flex items-center gap-2 mb-1">
                 <Volume2 className="h-3.5 w-3.5 text-purple-400" />
-                <span className="text-xs font-semibold text-white/80">Audio Codec</span>
+                <span className="text-xs font-semibold text-white/80">
+                  Audio Codec
+                </span>
               </div>
-              <p className="text-xs text-white/40 mb-2">Auto = backend choice. Copy = pass through untouched.</p>
+              <p className="text-xs text-white/40 mb-2">
+                Auto = backend choice. Copy = pass through untouched.
+              </p>
               <Dropdown
                 items={[
                   { label: "Auto (Recommended)", value: AUTO_VALUE },
@@ -371,7 +446,12 @@ export function AdvanceSidebar({
                   })),
                 ]}
                 value={valueOrAuto(audioEncoding.codec)}
-                onSelect={(val) => updateAudioEncoding({ codec: val === AUTO_VALUE ? AUTO_VALUE : (val as AudioCodec) })}
+                onSelect={(val) =>
+                  updateAudioEncoding({
+                    codec:
+                      val === AUTO_VALUE ? AUTO_VALUE : (val as AudioCodec),
+                  })
+                }
                 placeholder="Auto"
                 variant="default"
                 size="sm"
@@ -384,7 +464,9 @@ export function AdvanceSidebar({
               name="Audio Bitrate"
               description="e.g. 192k"
               value={audioEncoding.bitrate ?? ""}
-              setValue={(v) => updateAudioEncoding({ bitrate: v.trim() || null })}
+              setValue={(v) =>
+                updateAudioEncoding({ bitrate: v.trim() || null })
+              }
               placeholder="192k"
               icon={Music}
             />
@@ -413,15 +495,28 @@ export function AdvanceSidebar({
             <div className="rounded-xl bg-white/5 border border-white/8 p-3">
               <div className="flex items-center gap-2 mb-1">
                 <Music className="h-3.5 w-3.5 text-purple-400" />
-                <span className="text-xs font-semibold text-white/80">Channels</span>
+                <span className="text-xs font-semibold text-white/80">
+                  Channels
+                </span>
               </div>
               <Dropdown
                 items={[
                   { label: "Auto", value: AUTO_VALUE },
-                  ...Object.entries(AudioChannels).map(([label, value]) => ({ label, value })),
+                  ...Object.entries(AudioChannels).map(([label, value]) => ({
+                    label,
+                    value,
+                  })),
                 ]}
-                value={audioEncoding.channels ? String(audioEncoding.channels) : AUTO_VALUE}
-                onSelect={(val) => updateAudioEncoding({ channels: val === AUTO_VALUE ? null : parseInt(val, 10) })}
+                value={
+                  audioEncoding.channels
+                    ? String(audioEncoding.channels)
+                    : AUTO_VALUE
+                }
+                onSelect={(val) =>
+                  updateAudioEncoding({
+                    channels: val === AUTO_VALUE ? null : parseInt(val, 10),
+                  })
+                }
                 placeholder="Auto"
                 variant="default"
                 size="sm"
@@ -433,14 +528,20 @@ export function AdvanceSidebar({
               name="Audio Extra Args"
               description="Extra codec-specific audio args."
               value={formatArgs(audioEncoding.extra_args)}
-              setValue={(v) => updateAudioEncoding({ extra_args: parseArgs(v) })}
+              setValue={(v) =>
+                updateAudioEncoding({ extra_args: parseArgs(v) })
+              }
               placeholder="-application audio"
               icon={Volume2}
             />
           </div>
 
           {/* ── GLOBAL ENCODING ── */}
-          <SectionHeader icon={Settings} label="Global Encoding" color="bg-slate-600" />
+          <SectionHeader
+            icon={Settings}
+            label="Global Encoding"
+            color="bg-slate-600"
+          />
 
           <div className="space-y-3">
             <Switch
@@ -462,7 +563,11 @@ export function AdvanceSidebar({
           </div>
 
           {/* ── SUBTITLES ── */}
-          <SectionHeader icon={FileText} label="Subtitles" color="bg-cyan-700" />
+          <SectionHeader
+            icon={FileText}
+            label="Subtitles"
+            color="bg-cyan-700"
+          />
 
           <div className="space-y-3">
             <Switch
@@ -483,7 +588,11 @@ export function AdvanceSidebar({
           </div>
 
           {/* ── MEDIA FILES ── */}
-          <SectionHeader icon={Image} label="Media & Metadata" color="bg-indigo-600" />
+          <SectionHeader
+            icon={Image}
+            label="Media & Metadata"
+            color="bg-indigo-600"
+          />
 
           <div className="space-y-3">
             <Switch
@@ -517,7 +626,11 @@ export function AdvanceSidebar({
           </div>
 
           {/* ── CONFIGURATION ── */}
-          <SectionHeader icon={Settings} label="Configuration" color="bg-emerald-600" />
+          <SectionHeader
+            icon={Settings}
+            label="Configuration"
+            color="bg-emerald-600"
+          />
 
           <div className="space-y-3">
             <TextInput
@@ -538,13 +651,13 @@ export function AdvanceSidebar({
               rightButton={
                 <button
                   type="button"
-                  className="rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 px-3 py-2 text-xs font-medium text-white hover:from-cyan-500 hover:to-blue-500 transition-all cursor-pointer"
+                  className="rounded-lg bg-linear-to-r from-cyan-600 to-blue-600 px-3 py-2 text-xs font-medium text-white hover:from-cyan-500 hover:to-blue-500 transition-all cursor-pointer"
                   onClick={handleSelectCookiesFile}
                 >
                   Browse
                 </button>
               }
-            />  
+            />
             <TextInput
               name="Proxy"
               description="Proxy URL for requests."
@@ -564,7 +677,11 @@ export function AdvanceSidebar({
           </div>
 
           {/* ── PERFORMANCE ── */}
-          <SectionHeader icon={Clock} label="Performance" color="bg-orange-600" />
+          <SectionHeader
+            icon={Clock}
+            label="Performance"
+            color="bg-orange-600"
+          />
 
           <div className="space-y-3">
             <NumberInput
@@ -585,13 +702,29 @@ export function AdvanceSidebar({
               max={20}
               icon={Clock}
             />
+            <NumberInput
+              name="Concurrent Fragments"
+              description="Number of fragments to download in parallel (for fragmented streams)."
+              value={concurrentFragments}
+              setValue={setConcurrentFragments}
+              min={1}
+              max={20}
+              icon={Clock}
+            />
           </div>
 
           {/* ── ADVANCED ── */}
-          <SectionHeader icon={Settings} label="Advanced" color="bg-violet-600" />
+          <SectionHeader
+            icon={Settings}
+            label="Advanced"
+            color="bg-violet-600"
+          />
 
           <div className="space-y-3 pb-6">
-            <CustomOptionsInput value={customOptions} setValue={setCustomOptions} />
+            <CustomOptionsInput
+              value={customOptions}
+              setValue={setCustomOptions}
+            />
           </div>
         </div>
       </div>

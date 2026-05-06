@@ -17,6 +17,10 @@ import {
   Music,
   RefreshCw,
   X,
+  ListVideo,
+  ChevronRight,
+  ChevronDown,
+  PlayCircle,
 } from "lucide-react";
 import { api } from "../api";
 import { toast } from "sonner";
@@ -32,11 +36,26 @@ type HistoryItem = {
   date_finished?: string;
   status: string;
   priority: string;
+  download_type?: string;
   error?: string;
   config: DownloadConfig;
   thumbnail_path?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: Record<string, any>;
+};
+
+type PlaylistChild = {
+  id: number;
+  url: string;
+  filename: string;
+  status: string;
+  error?: string;
+  config: DownloadConfig;
+  thumbnail_path?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata?: Record<string, any>;
+  date_finished?: string;
+  date_created?: string;
 };
 
 function formatDate(iso?: string) {
@@ -117,6 +136,116 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+interface PlaylistThumbnailStackProps {
+  thumbnails: (string | undefined)[];
+  small: boolean;
+}
+// ── Stacked Playlist Thumbnail ──
+export function PlaylistThumbnailStack({
+  thumbnails,
+  small = true,
+}: PlaylistThumbnailStackProps) {
+  const validThumbs = thumbnails.filter(Boolean).slice(0, 3) as string[];
+
+  // Dynamic sizing based on the 'small' prop
+  const containerClasses = small ? "w-16 h-10" : "w-48 h-32";
+  // Proportional displacement: 10% of height
+  const offset = small ? 4 : 10;
+
+  return (
+    <div
+      className={`relative ${containerClasses} shrink-0 flex items-end justify-center`}
+    >
+      {validThumbs.length > 0 ? (
+        validThumbs.map((src, index) => (
+          <ThumbnailCard
+            key={src + index}
+            src={src}
+            index={validThumbs.length - 1 - index}
+            total={validThumbs.length}
+            offset={offset}
+            isSmall={small}
+          />
+        ))
+      ) : (
+        <EmptyStackState />
+      )}
+    </div>
+  );
+}
+
+function ThumbnailCard({
+  src,
+  index,
+  total,
+  offset,
+  isSmall,
+}: {
+  src: string;
+  index: number;
+  total: number;
+  offset: number;
+  isSmall: boolean;
+}) {
+  const [error, setError] = useState(false);
+  const cleanSrc = src.startsWith("file://")
+    ? src
+    : `file://${src.replace(/\\/g, "/")}`;
+
+  // Scale back cards, but keep the front card at 100%
+  const scale = 1 - index * 0.05;
+  const translateY = index * -offset;
+
+  return (
+    <div
+      className="absolute inset-x-0 bottom-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800 border border-black/10 dark:border-white/10 shadow-md transition-all duration-300"
+      style={{
+        height: "100%",
+        zIndex: total - index,
+        transform: `translateY(${translateY}px) scale(${scale})`,
+        opacity: 1 - index * 0.15,
+        rotate: `${(index % 2 === 0 ? 1 : -1) * (index + 1) * 3}deg`,
+      }}
+    >
+      {!error ? (
+        <img
+          src={cleanSrc}
+          alt=""
+          className="w-full h-full object-cover"
+          onError={() => setError(true)}
+        />
+      ) : (
+        <div className="w-full h-full bg-indigo-500/10 flex items-center justify-center">
+          <ListVideo
+            className={`${isSmall ? "w-4 h-4" : "w-8 h-8"} text-indigo-400`}
+          />
+        </div>
+      )}
+
+      {index === 0 && (
+        <div
+          style={{
+            transform: `rotate(${-(index % 2 === 0 ? 1 : -1) * (index + 1) * 3}deg)`,
+          }}
+          className={`absolute  ${isSmall ? "bottom-0.5 right-0.5" : "bottom-1.5 right-1.5"} bg-black/70 rounded flex items-center justify-center ${isSmall ? "p-0.5" : "p-1.5"}`}
+        >
+          <ListVideo
+            className={`${isSmall ? "w-3 h-3" : "w-5 h-5"} text-white`} strokeWidth={isSmall? 2 : 3.3}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmptyStackState() {
+  return (
+    <div className="w-full h-full rounded-md bg-linear-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center border border-dashed border-gray-300 dark:border-gray-700">
+      <ListVideo className="w-5 h-5 text-gray-400" />
+    </div>
+  );
+}
+
 interface ItemProps {
   item: HistoryItem;
   deleteItem: (id: number) => void;
@@ -128,6 +257,14 @@ function Item({ item, deleteItem, onSelect, selected }: ItemProps) {
   const title = item.metadata?.title ?? item.filename ?? "Untitled";
   const isAudio = item.config?.extract_audio;
   const isFinished = item.status === "finished";
+  const isPlaylist = item.download_type === "playlist";
+
+  // For playlist items, gather child thumbnails from metadata
+  const playlistThumbnails: (string | undefined)[] = isPlaylist
+    ? ((item.metadata?.child_thumbnails as string[] | undefined) ?? [
+        item.thumbnail_path,
+      ])
+    : [];
 
   const actionItems: DropdownItem[] = [
     {
@@ -165,12 +302,12 @@ function Item({ item, deleteItem, onSelect, selected }: ItemProps) {
     },
     { divider: true },
     {
-      label: `Delete History${isFinished ? " & File" : ""} `,
+      label: `Delete History${isFinished && !isPlaylist ? " & File" : ""}`,
       value: "delete",
       icon: Trash2,
       danger: true,
       onClick: async () => {
-        if (!isFinished) {
+        if (!isFinished || isPlaylist) {
           deleteItem(item.id);
           return;
         }
@@ -197,24 +334,28 @@ function Item({ item, deleteItem, onSelect, selected }: ItemProps) {
       onClick={() => onSelect(item)}
     >
       {/* Thumbnail */}
-      <div className="w-16 h-11 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center shadow-sm">
-        {item.thumbnail_path ? (
-          <img
-            src={`file://${item.thumbnail_path.replace(/\\/g, "/")}`}
-            alt={title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <div className="text-gray-300 dark:text-gray-600">
-            {isAudio ? (
-              <Music className="w-5 h-5" />
-            ) : (
-              <Film className="w-5 h-5" />
-            )}
-          </div>
-        )}
-      </div>
+      {isPlaylist ? (
+        <PlaylistThumbnailStack thumbnails={playlistThumbnails} small />
+      ) : (
+        <div className="w-16 h-11 shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center shadow-sm">
+          {item.thumbnail_path ? (
+            <img
+              src={`file://${item.thumbnail_path.replace(/\\/g, "/")}`}
+              alt={title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="text-gray-300 dark:text-gray-600">
+              {isAudio ? (
+                <Music className="w-5 h-5" />
+              ) : (
+                <Film className="w-5 h-5" />
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Info */}
       <div className="flex-1 min-w-0 space-y-0.5">
@@ -223,20 +364,33 @@ function Item({ item, deleteItem, onSelect, selected }: ItemProps) {
             {title}
           </p>
           <StatusBadge status={item.status} />
+          {isPlaylist && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20">
+              <ListVideo className="w-3 h-3" />
+              Playlist
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
           {item.metadata?.uploader && (
-            <span className="truncate max-w-[140px]">
-              {item.metadata.uploader}
-            </span>
+            <span className="truncate max-w-35">{item.metadata.uploader}</span>
           )}
-          {item.metadata?.duration && (
+          {isPlaylist && item.metadata?.total_videos && (
+            <>
+              {item.metadata?.uploader && <span>·</span>}
+              <span>
+                {item.metadata.successful_downloads ?? "?"}/
+                {item.metadata.total_videos} videos
+              </span>
+            </>
+          )}
+          {!isPlaylist && item.metadata?.duration && (
             <>
               <span>·</span>
               <span>{formatDuration(item.metadata.duration)}</span>
             </>
           )}
-          <span className="ml-auto flex-shrink-0">
+          <span className="ml-auto shrink-0">
             {formatDate(item.date_finished || item.date_created)}
           </span>
         </div>
@@ -247,12 +401,12 @@ function Item({ item, deleteItem, onSelect, selected }: ItemProps) {
         )}
       </div>
 
-      {/* Quick Actions — always visible, not just on hover */}
+      {/* Quick Actions — no play/folder for playlists */}
       <div
-        className="flex items-center gap-0.5 flex-shrink-0"
+        className="flex items-center gap-0.5 shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {isFinished && (
+        {isFinished && !isPlaylist && (
           <>
             <button
               title="Play"
@@ -297,7 +451,6 @@ function Item({ item, deleteItem, onSelect, selected }: ItemProps) {
             <button
               title="More options"
               className="p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all"
-              // onClick={(e) => e.stopPropagation()}
             >
               <MoreHorizontal className="w-4 h-4" />
             </button>
@@ -311,6 +464,105 @@ function Item({ item, deleteItem, onSelect, selected }: ItemProps) {
   );
 }
 
+// ── Playlist child video row in detail panel ──
+function PlaylistChildRow({
+  child,
+  outputPath,
+  onDelete,
+}: {
+  child: PlaylistChild;
+  outputPath: string;
+  onDelete?: (id: number) => void;
+}) {
+  const title = child.metadata?.title ?? child.filename ?? "Untitled";
+  const isFinished = child.status === "finished";
+  const [imgErr, setImgErr] = useState(false);
+
+  return (
+    <div className="flex items-center gap-2.5 py-2 border-b border-gray-100 dark:border-gray-800/60 last:border-0 group">
+      {/* Thumbnail */}
+      <div className="w-14 h-9 shrink-0 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800">
+        {child.thumbnail_path && !imgErr ? (
+          <img
+            src={`file://${child.thumbnail_path.replace(/\\/g, "/")}`}
+            alt={title}
+            className="w-full h-full object-cover"
+            onError={() => setImgErr(true)}
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Film className="w-4 h-4 text-gray-400" />
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-gray-800 dark:text-gray-100 truncate leading-tight">
+          {title}
+        </p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <StatusBadge status={child.status} />
+          {child.metadata?.duration && (
+            <span className="text-xs text-gray-400">
+              {formatDuration(child.metadata.duration)}
+            </span>
+          )}
+        </div>
+        {child.status === "failed" && child.error && (
+          <p className="text-xs text-red-400 truncate mt-0.5">{child.error}</p>
+        )}
+      </div>
+
+      {/* Actions */}
+      {isFinished && (
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            title="Play"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-all"
+            onClick={async () => {
+              const result = await window.api.openFile(
+                `${outputPath}/${child.filename}`,
+              );
+              if (!result.success) toast.error(result.error);
+            }}
+          >
+            <PlayCircle className="w-3.5 h-3.5" />
+          </button>
+          <button
+            title="Show in folder"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-all"
+            onClick={async () => {
+              const result = await window.api.showInFolder(
+                `${outputPath}/${child.filename}`,
+              );
+              if (!result.success) toast.error(result.error);
+            }}
+          >
+            <FolderOpen className="w-3.5 h-3.5" />
+          </button>
+          <button
+            title="Delete from history"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
+            onClick={async () => {
+              try {
+                await api.delete(`/history/playlist/child/${child.id}`);
+                toast.success("Video removed from history");
+                onDelete?.(child.id);
+              } catch (err) {
+                toast.error("Failed to delete from history");
+              }
+            }}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DetailPanel({
   item,
   onClose,
@@ -320,40 +572,75 @@ function DetailPanel({
 }) {
   const title = item.metadata?.title ?? item.filename ?? "Untitled";
   const isFinished = item.status === "finished";
+  const isPlaylist = item.download_type === "playlist";
+  const [playlistChildren, setPlaylistChildren] = useState<PlaylistChild[]>([]);
+  const [childrenLoading, setChildrenLoading] = useState(false);
+  const [expanded, setExpanded] = useState(true);
+
+  useEffect(() => {
+    if (!isPlaylist) return;
+    setChildrenLoading(true);
+    api
+      .get<PlaylistChild[]>(`/history/playlist/${item.id}/children`)
+      .then((res) => setPlaylistChildren(res.data))
+      .catch(() => setPlaylistChildren([]))
+      .finally(() => setChildrenLoading(false));
+  }, [item.id, isPlaylist]);
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-start justify-between gap-2 p-4 ">
+      <div className="flex items-start justify-between gap-2 p-4">
         <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 leading-snug line-clamp-2 flex-1">
           {title}
         </h3>
         <button
           onClick={onClose}
-          className="flex-shrink-0 p-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+          className="shrink-0 p-1 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Thumbnail */}
-      {item.thumbnail_path && (
-        <div className="p-3 pb-0">
-          <div className="rounded-xl overflow-hidden aspect-video bg-gray-100 dark:bg-gray-800 shadow-md">
-            <img
-              src={`file://${item.thumbnail_path.replace(/\\/g, "/")}`}
-              alt={title}
-              className="w-full h-full object-cover"
+      {/* Thumbnail — playlist gets the stacked look, single video gets normal */}
+      {isPlaylist ? (
+        <div className="px-4 pb-2">
+          <div className="relative h-28 flex items-center justify-center">
+            <PlaylistThumbnailStack
+              thumbnails={
+                (item.metadata?.child_thumbnails as string[] | undefined) ?? [
+                  item.thumbnail_path,
+                ]
+              }
+              small={false}
             />
           </div>
         </div>
+      ) : (
+        item.thumbnail_path && (
+          <div className="p-3 pb-0">
+            <div className="rounded-xl overflow-hidden aspect-video bg-gray-100 dark:bg-gray-800 shadow-md">
+              <img
+                src={`file://${item.thumbnail_path.replace(/\\/g, "/")}`}
+                alt={title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
+        )
       )}
 
       {/* Meta */}
       <div className="p-4 space-y-3 flex-1 overflow-y-auto custom-scrollbar text-sm">
         <div className="flex items-center gap-2 flex-wrap">
           <StatusBadge status={item.status} />
-          {item.metadata?.duration && (
+          {isPlaylist && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20">
+              <ListVideo className="w-3 h-3" />
+              Playlist
+            </span>
+          )}
+          {!isPlaylist && item.metadata?.duration && (
             <span className="text-xs text-gray-400">
               {formatDuration(item.metadata.duration)}
             </span>
@@ -371,7 +658,19 @@ function DetailPanel({
           </div>
         )}
 
-        {item.metadata?.view_count && (
+        {isPlaylist && (
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
+              Videos
+            </p>
+            <p className="text-gray-700 dark:text-gray-300">
+              {item.metadata?.successful_downloads ?? "?"} downloaded /{" "}
+              {item.metadata?.total_videos ?? "?"} total
+            </p>
+          </div>
+        )}
+
+        {!isPlaylist && item.metadata?.view_count && (
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
               Views
@@ -391,7 +690,7 @@ function DetailPanel({
           </p>
         </div>
 
-        {item.filename && (
+        {!isPlaylist && item.filename && (
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
               File
@@ -413,7 +712,8 @@ function DetailPanel({
           </div>
         )}
 
-        {isFinished && (
+        {/* Single video actions */}
+        {isFinished && !isPlaylist && (
           <div className="flex flex-col gap-2 pt-1">
             <button
               className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all cursor-pointer shadow-sm hover:shadow-indigo-500/25"
@@ -437,6 +737,51 @@ function DetailPanel({
               <FolderOpen className="w-4 h-4" />
               Show in Folder
             </button>
+          </div>
+        )}
+
+        {/* Playlist children */}
+        {isPlaylist && (
+          <div>
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="flex items-center gap-1.5 w-full text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+            >
+              {expanded ? (
+                <ChevronDown className="w-3.5 h-3.5" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5" />
+              )}
+              Videos ({playlistChildren.length})
+            </button>
+
+            {expanded && (
+              <>
+                {childrenLoading ? (
+                  <div className="flex items-center gap-2 py-4 text-xs text-gray-400">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Loading videos…
+                  </div>
+                ) : playlistChildren.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-2">No videos found.</p>
+                ) : (
+                  <div className="space-y-0">
+                    {playlistChildren.map((child) => (
+                      <PlaylistChildRow
+                        key={child.id}
+                        child={child}
+                        outputPath={item.config.output_path}
+                        onDelete={(deletedId) => {
+                          setPlaylistChildren((prev) =>
+                            prev.filter((c) => c.id !== deletedId),
+                          );
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
@@ -526,15 +871,13 @@ export function Downloads({ isActive }: DownloadsProp) {
   }
 
   return (
-    /* Full-bleed container — takes all the space the parent gives */
     <div className="flex h-[calc(100vh-6rem)] -m-4 overflow-hidden">
       {/* ── LEFT: MAIN LIST ── */}
       <div
         className={`flex flex-col flex-1 min-w-0 ${selectedItem ? "" : "rounded-r-xl"}`}
       >
         {/* Toolbar */}
-        <div className="flex items-center gap-2 px-4 py-3 flex-shrink-0">
-          {/* Search */}
+        <div className="flex items-center gap-2 px-4 py-3 shrink-0">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
             <input
@@ -553,11 +896,9 @@ export function Downloads({ isActive }: DownloadsProp) {
               </button>
             )}
           </div>
-
-          {/* Refresh */}
           <button
             onClick={fetchItems}
-            className="p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-white dark:hover:bg-gray-700 border border-transparent  transition-all"
+            className="p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-white dark:hover:bg-gray-700 border border-transparent transition-all"
             title="Refresh"
           >
             <RefreshCw className="w-4 h-4" />
@@ -565,7 +906,7 @@ export function Downloads({ isActive }: DownloadsProp) {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-1 px-4 py-2.5 flex-shrink-0 ">
+        <div className="flex gap-1 px-4 py-2.5 shrink-0">
           {(["all", "finished", "failed", "other"] as FilterType[]).map((f) => (
             <button
               key={f}
@@ -636,7 +977,7 @@ export function Downloads({ isActive }: DownloadsProp) {
 
         {/* Footer stats */}
         {items.length > 0 && (
-          <div className="flex items-center gap-3 px-4 py-2.5  flex-shrink-0">
+          <div className="flex items-center gap-3 px-4 py-2.5 shrink-0">
             <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
               {filteredItems.length} of {items.length} downloads
             </span>
@@ -651,7 +992,7 @@ export function Downloads({ isActive }: DownloadsProp) {
 
       {/* ── RIGHT: DETAIL PANEL ── */}
       {selectedItem && (
-        <div className="w-72 flex-shrink-0 border-l border-gray-200 dark:border-gray-700/60">
+        <div className="w-72 shrink-0 border-l border-gray-200 dark:border-gray-700/60">
           <DetailPanel
             item={selectedItem}
             onClose={() => setSelectedItem(null)}

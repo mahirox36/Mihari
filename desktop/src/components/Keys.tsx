@@ -26,29 +26,41 @@ export function Switch({
   disabled = false,
 }: SwitchProbe) {
   return (
-    <div className="flex items-center gap-3">
-      <span className="flex-1 text-sm font-medium text-[var(--switch-text)] dark:text-[var(--dark-switch-text)] select-none">
+    <div
+      className={`flex items-center gap-3 transition-opacity duration-200 ${disabled ? "opacity-50" : "opacity-100"}`}
+    >
+      <span className="flex-1 text-sm font-medium text-(--switch-text) dark:text-(--dark-switch-text) select-none">
         {name}
       </span>
       <button
-        onClick={() => setProperty(!property)}
+        type="button"
+        onClick={() => !disabled && setProperty(!property)}
         disabled={disabled}
         className={`
-      relative w-12 h-6 flex-shrink-0 rounded-full transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--focus-ring)]
-      ${
-        property
-          ? "bg-gradient-to-r from-[var(--switch-on-from)] via-[var(--switch-on-via)] to-[var(--switch-on-to)] shadow-[var(--switch-shadow)]"
-          : "bg-[var(--switch-off-bg)] dark:bg-[var(--dark-switch-off-bg)]"
-      }
-      hover:scale-105 active:scale-95 disabled:bg-gray-300/80 disabled:dark:bg-gray-600/80 disabled:cursor-not-allowed
-    `}
+          relative w-12 h-6 shrink-0 rounded-full transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-(--focus-ring)
+          
+          /* Background Logic */
+          ${
+            property && !disabled
+              ? "bg-linear-to-r from-(--switch-on-from) via-(--switch-on-via) to-(--switch-on-to) shadow-(--switch-shadow)"
+              : "bg-(--switch-off-bg) dark:bg-(--dark-switch-off-bg)"
+          }
+
+          /* Disabled State Overrides */
+          ${
+            disabled
+              ? "bg-gray-300 dark:bg-zinc-700 cursor-not-allowed grayscale-[0.8]"
+              : "cursor-pointer hover:scale-105 active:scale-95"
+          }
+        `}
       >
         <div
           className={`
-        absolute top-0.5 w-5 h-5 bg-[var(--switch-circle-bg)] rounded-full shadow-md
-        transition-all duration-300 ease-in-out
-        ${property ? "left-6" : "left-0.5"}
-      `}
+            absolute top-0.5 w-5 h-5 bg-(--switch-circle-bg) rounded-full shadow-md
+            transition-all duration-300 ease-in-out
+            ${property ? "translate-x-6" : "translate-x-0.75"}
+            ${disabled ? "bg-gray-100 dark:bg-zinc-500 shadow-none" : ""}
+          `}
         />
       </button>
     </div>
@@ -164,7 +176,7 @@ export function Dropdown({
   const [searchTerm, setSearchTerm] = useState("");
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [pendingPos, setPendingPos] = useState<{ x: number; y: number } | null>(
-    null
+    null,
   );
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -173,7 +185,7 @@ export function Dropdown({
   // Filter items based on search
   const filteredItems = searchable
     ? items.filter((item) =>
-        item.label?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        item.label?.toString().toLowerCase().includes(searchTerm.toLowerCase()),
       )
     : items;
 
@@ -217,7 +229,7 @@ export function Dropdown({
   }, [open]);
 
   const handleSelect = (item: DropdownItem) => {
-    console.log("gg")
+    console.log("gg");
     if (item.disabled) return;
 
     if (item.onClick) {
@@ -432,8 +444,8 @@ export function Dropdown({
                           item.disabled
                             ? "text-slate-400 dark:text-slate-500 cursor-not-allowed"
                             : item.danger
-                            ? "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            : "text-slate-700 dark:text-slate-200 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-blue-50 dark:hover:from-indigo-900/30 dark:hover:to-blue-900/30 hover:text-indigo-700 dark:hover:text-indigo-200"
+                              ? "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              : "text-slate-700 dark:text-slate-200 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-blue-50 dark:hover:from-indigo-900/30 dark:hover:to-blue-900/30 hover:text-indigo-700 dark:hover:text-indigo-200"
                         }
                         ${
                           item.value === value
@@ -467,7 +479,7 @@ export function Dropdown({
               )}
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </div>
   );

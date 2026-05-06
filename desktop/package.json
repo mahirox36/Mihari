@@ -1,7 +1,7 @@
 {
   "name": "mihari",
   "private": true,
-  "version": "2.0.0-beta.7",
+  "version": "2.0.0-beta.8",
   "description": "Mihari: Ultimate Video Downloader",
   "type": "module",
   "homepage": "https://mihari.mahirou.online",
@@ -18,7 +18,7 @@
     "preview": "vite preview"
   },
   "build": {
-    "appId": "online.mahirou.mihari.dashboard",
+    "appId": "online.mahirou.mihari.app",
     "productName": "Mihari",
     "protocols": [
       {
@@ -58,7 +58,7 @@
           ]
         }
       ],
-      "icon": "./icon.ico",
+      "icon": "../assets/icon.ico",
       "artifactName": "Mihari-Setup-${version}-win-${arch}.${ext}"
     },
     "mac": {
@@ -158,13 +158,16 @@
       {
         "from": "../assets/icon.ico",
         "to": "icon.ico"
+      },
+      {
+        "from": "../assets/icon.png",
+        "to": "icon.png" 
       }
     ]
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.8",
     "axios": "^1.10.0",
-    "electron": "^41.3.0",
     "framer-motion": "^12.38.0",
     "fs": "^0.0.1-security",
     "lucide-react": "^0.522.0",
@@ -184,6 +187,7 @@
     "@typescript-eslint/parser": "^7.1.1",
     "@vitejs/plugin-react": "^4.2.1",
     "electron-builder": "^26.8.1",
+    "electron": "^41.3.0",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",

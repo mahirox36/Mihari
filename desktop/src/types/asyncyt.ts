@@ -78,6 +78,7 @@ export type DownloadConfig = {
 
   retries: number;
   fragment_retries: number;
+  concurrent_fragments: number;
 
   custom_options: Record<string, any>;
   encoding: EncodingConfig;
@@ -181,14 +182,13 @@ export type PlaylistDownloadProgress = {
 
   current_index: number;
 
-  current_video?: PlaylistVideoInfo | null;
-  current_video_progress?: DownloadProgress | null;
+  active_video: Record<string, PlaylistVideoInfo>;
+  active_downloads_progress: Record<string, DownloadProgress>;
 
   overall_percentage: number;
 
   results: PlaylistItemResult[];
 };
-
 export type PlaylistResponse = {
   success: boolean;
   message: string;

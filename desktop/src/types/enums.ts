@@ -1,15 +1,86 @@
-export enum Preset {
-  ULTRAFAST = "ultrafast",
-  SUPERFAST = "superfast",
-  VERYFAST = "veryfast",
-  FASTER = "faster",
-  FAST = "fast",
-  MEDIUM = "medium",
-  SLOW = "slow",
-  SLOWER = "slower",
-  VERYSLOW = "veryslow",
-  PLACEBO = "placebo",
+export enum AudioFormat {
+  COPY = "copy",
+  MP3 = "mp3",
+  M4A = "m4a",
+  WAV = "wav",
+  FLAC = "flac",
+  OGG = "ogg",
+  OPUS = "opus",
+  AAC = "aac",
+  AC3 = "ac3",
+  EAC3 = "eac3",
+  DTS = "dts",
+  AMR = "amr",
+  AWB = "awb",
+  WV = "wv",
+  ALAC = "alac",
+  AIFF = "aiff",
+  MKA = "mka",
+  VORBIS = "vorbis",
 }
+
+export enum VideoFormat {
+  MP4 = "mp4",
+  WEBM = "webm",
+  MKV = "mkv",
+  AVI = "avi",
+  FLV = "flv",
+  MOV = "mov",
+  GIF = "gif",
+}
+
+export enum Quality {
+  BEST = "best",
+  WORST = "worst",
+  AUDIO_ONLY = "bestaudio",
+  VIDEO_ONLY = "bestvideo",
+  LOW_144P = "144p",
+  LOW_240P = "240p",
+  SD_480P = "480p",
+  HD_720P = "720p",
+  HD_1080P = "1080p",
+  HD_1440P = "1440p",
+  UHD_4K = "2160p",
+  UHD_8K = "4320p",
+}
+
+export enum VideoCodec {
+  // Software codecs
+  H264 = "libx264",
+  H265 = "libx265",
+  VP9 = "libvpx-vp9",
+  VP8 = "libvpx",
+  AV1 = "libaom-av1",
+  AV1_SVT = "libsvtav1",
+  AV1_RAV1E = "librav1e",
+  // NVIDIA
+  H264_NVENC = "h264_nvenc",
+  HEVC_NVENC = "hevc_nvenc",
+  AV1_NVENC = "av1_nvenc",
+  // Intel QSV
+  H264_QSV = "h264_qsv",
+  HEVC_QSV = "hevc_qsv",
+  AV1_QSV = "av1_qsv",
+  // AMD AMF
+  H264_AMF = "h264_amf",
+  HEVC_AMF = "hevc_amf",
+  // Apple VideoToolbox
+  H264_VIDEOTOOLBOX = "h264_videotoolbox",
+  HEVC_VIDEOTOOLBOX = "hevc_videotoolbox",
+  // Vulkan
+  H264_VULKAN = "h264_vulkan",
+  HEVC_VULKAN = "hevc_vulkan",
+  // Other
+  MJPEG = "mjpeg",
+  PRORES = "prores",
+  DNXHD = "dnxhd",
+  THEORA = "libtheora",
+  H263 = "h263",
+  H261 = "h261",
+  CINEFORM = "cineform",
+  COPY = "copy",
+}
+
 export enum AudioCodec {
   AAC = "aac",
   MP3 = "libmp3lame",
@@ -29,7 +100,21 @@ export enum AudioCodec {
   WAVPACK = "wavpack",
   COPY = "copy",
 }
-export enum TuneOptions {
+
+export enum Preset {
+  ULTRAFAST = "ultrafast",
+  SUPERFAST = "superfast",
+  VERYFAST = "veryfast",
+  FASTER = "faster",
+  FAST = "fast",
+  MEDIUM = "medium",
+  SLOW = "slow",
+  SLOWER = "slower",
+  VERYSLOW = "veryslow",
+  PLACEBO = "placebo",
+}
+
+export enum TuneOption {
   FILM = "film",
   ANIMATION = "animation",
   GRAIN = "grain",
@@ -39,18 +124,7 @@ export enum TuneOptions {
   PSNR = "psnr",
   SSIM = "ssim",
 }
-export enum SubtitleFormat {
-  SRT = "srt",
-  VTT = "vtt",
-  ASS = "ass",
-  LRC = "lrc",
-}
-export enum AudioChannels {
-  MONO = "1",
-  STEREO = "2",
-  SURROUND_5_1 = "6",
-  SURROUND_7_1 = "8",
-}
+
 export enum PixelFormat {
   YUV420P = "yuv420p",
   YUV422P = "yuv422p",
@@ -64,45 +138,38 @@ export enum PixelFormat {
   GBRP = "gbrp",
   GBRP10LE = "gbrp10le",
 }
-export enum VideoCodec {
-  // Software codecs
-  H264 = "libx264",
-  H265 = "libx265",
-  VP9 = "libvpx-vp9",
-  VP8 = "libvpx",
-  AV1 = "libaom-av1",
-  AV1_SVT = "libsvtav1",
-  AV1_RAV1E = "librav1e",
 
-  // Hardware accelerated (NVIDIA),
-  H264_NVENC = "h264_nvenc",
-  HEVC_NVENC = "hevc_nvenc",
-  AV1_NVENC = "av1_nvenc",
+export enum AudioChannels {
+  MONO = "1",
+  STEREO = "2",
+  SURROUND_5_1 = "6",
+  SURROUND_7_1 = "8",
+}
 
-  // Hardware accelerated (Intel QSV)
-  H264_QSV = "h264_qsv",
-  HEVC_QSV = "hevc_qsv",
-  AV1_QSV = "av1_qsv",
+export enum SubtitleFormat {
+  SRT = "srt",
+  VTT = "vtt",
+  ASS = "ass",
+  LRC = "lrc",
+}
 
-  // Hardware accelerated (AMD AMF)
-  H264_AMF = "h264_amf",
-  HEVC_AMF = "hevc_amf",
+export enum ProgressStatus {
+  DOWNLOADING = "downloading",
+  DOWNLOADED = "downloaded",
+  ENCODING = "encoding",
+  COMPLETED = "completed",
+  UPDATING = "updating",
+  EXTRACTING = "extracting",
+  REMUXING = "remuxing",
+  MERGING = "merging",
+}
 
-  // Hardware accelerated (Apple VideoToolbox)
-  H264_VIDEOTOOLBOX = "h264_videotoolbox",
-  HEVC_VIDEOTOOLBOX = "hevc_videotoolbox",
-
-  // Vulkan
-  H264_VULKAN = "h264_vulkan",
-  HEVC_VULKAN = "hevc_vulkan",
-
-  // Other
-  MJPEG = "mjpeg",
-  PRORES = "prores",
-  DNXHD = "dnxhd",
-  THEORA = "libtheora",
-  H263 = "h263",
-  H261 = "h261",
-  CINEFORM = "cineform",
-  COPY = "copy",
+export enum PlaylistStatus {
+  PENDING = "pending",
+  FETCHING_INFO = "fetching_info",
+  DOWNLOADING = "downloading",
+  COMPLETED = "completed",
+  FAILED = "failed",
+  CANCELLED = "cancelled",
+  PARTIAL = "partial",
 }
