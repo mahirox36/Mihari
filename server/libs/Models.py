@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import sys
+import traceback
 from datetime import datetime, timedelta, timezone
 from enum import StrEnum, auto
 from pathlib import Path
@@ -20,8 +21,6 @@ from asyncyt.basemodels import PlaylistConfig
 from tortoise import fields
 from tortoise.models import Model
 from tortoise.transactions import in_transaction
-
-import __main__
 
 CurrentDir = Path.cwd()
 UPDATE_FLAG_PATH = CurrentDir / "update"
@@ -45,7 +44,8 @@ def decode_presets_from_base64(data_str):
 def get_data_path():
     if is_bundled():
         if sys.platform == "win32":
-            return Path(str(os.getenv("APPDATA"))) / "Mihari" / "BackendData"
+            appdata = Path(str(os.getenv("APPDATA"))) / "Mihari"
+            return appdata / "BackendData"
         # Mac
         elif sys.platform == "darwin":
             return (
@@ -63,40 +63,72 @@ def get_data_path():
         return CurrentDir
 
 
-async def Update():
+async def needs_update() -> bool:
     from aerich import Command
 
+    command = Command(TORTOISE_ORM)
+    await command.init()
+    result = await command.migrate()
+    return bool(result)
+
+
+async def Update():
+    from aerich import Command
+    from tortoise import Tortoise
+
+    migrations_dir = str(get_data_path().absolute() / "migrations")
+
+    tortoise_config = {
+        **TORTOISE_ORM,
+        "aerich": {
+            "location": migrations_dir,
+        },
+    }
+
+    async def run_migration(command) -> bool:
+        await command.init()
+        result = await command.migrate()
+        if not result:
+            print("No schema changes detected — skipping upgrade.")
+            return False
+        await command.upgrade()
+        return True
+
+    async def fresh_install(command) -> bool:
+        await command.init()
+        await command.init_db(safe=True)
+        return True
+
     try:
-        if UPDATE_FLAG_PATH.exists():
-            command = Command(TORTOISE_ORM)
-            await command.init()
+        command = Command(tortoise_config, location=migrations_dir)
+        try:
+            return await run_migration(command)
+        except Exception as migrate_error:
+            print("Migration failed, attempting full reset...")
+            import shutil
+            import traceback
 
-            try:
-                await command.migrate()
-                await command.upgrade()
+            traceback.print_exc()
+            logger.exception(migrate_error)
 
-            except Exception as migrate_error:
-                print("Migration failed, attempting full reset...")
-                import traceback
+            await Tortoise.close_connections()
 
-                traceback.print_exc()
-                logger.exception(migrate_error)
+            db_path = get_data_path().absolute() / "Mihari.sqlite3"
+            migrations_path = get_data_path().absolute() / "migrations"
 
-                import os
+            # ✅ Remove both DB and stale migration snapshots
+            if db_path.exists():
+                try:
+                    db_path.unlink()
+                except PermissionError as e:
+                    logger.error(f"Cannot delete DB: {e}")
+                    return None
 
-                db_path = str(get_data_path().absolute() / "Mihari.sqlite3")
-                if db_path and os.path.exists(db_path):
-                    os.remove(db_path)
+            if migrations_path.exists():
+                shutil.rmtree(migrations_path)
 
-                # re-run migrations after reset
-                await command.init()
-                await command.migrate()
-                await command.upgrade()
-
-            UPDATE_FLAG_PATH.unlink()
-            return True
-
-        return False
+            command = Command(tortoise_config, location=migrations_dir)
+            return await fresh_install(command)
 
     except Exception as e:
         import traceback

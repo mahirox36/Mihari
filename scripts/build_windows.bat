@@ -14,7 +14,14 @@ pyinstaller --onefile --noconfirm --clean ^
   --icon "../assets/icon.ico" ^
   --add-data "libs;libs" ^
   --copy-metadata tortoise-orm ^
+  --copy-metadata aerich ^
   --hidden-import=tortoise.backends.sqlite ^
+  --hidden-import=aerich ^
+  --hidden-import=aerich.ddl ^
+  --hidden-import=aerich.ddl.sqlite ^
+  --hidden-import=aerich.models ^
+  --hidden-import=aerich.inspectdb ^
+  --hidden-import=aerich.inspectdb.sqlite ^
   --version-file=../scripts/version.txt ^
   main.py
 type nul > dist/update
