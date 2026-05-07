@@ -68,7 +68,7 @@ const platform = os.platform();
 const backendName =
   platform === "win32" ? "Mihari backend.exe" : "Mihari backend";
 
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const getIconPath = () => {
   const isLinux = process.platform === "linux";
   const iconFile = isLinux ? "icon.png" : "icon.ico";
@@ -76,7 +76,7 @@ const getIconPath = () => {
   if (app.isPackaged) {
     return path.join(process.resourcesPath, iconFile);
   }
-  
+
   return path.join(__dirname, `../public/${iconFile}`);
 };
 
@@ -882,7 +882,7 @@ ipcMain.handle(
           : [],
         closeButtonText: "Close",
       });
-      
+
       notif.on("click", () => {
         console.log("Notification clicked - focusing window");
         if (win) {

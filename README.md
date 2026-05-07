@@ -15,7 +15,7 @@ Whether you're saving a single song or downloading an entire playlist, **Mihari*
 - 🎬 **Universal Video Support** — Download from thousands of platforms via `AsyncYT`.
 - ♾️ **Unlimited Downloads** — No caps, no restrictions. Download freely!
 - ⚙️ **Highly Customizable** — Choose format, quality, subtitles, metadata, thumbnails, cookies, and more!
-- 🖱️ **One‑Click Simplicity** — Download instantly with a single click or keyboard shortcut. _(Shortcuts coming soon!)_
+- 🖱️ **One‑Click Simplicity** — Download instantly with a single click or keyboard shortcut.
 - 📥 **Multiple Links at Once** — Paste in several links together and **Mihari** will download them all simultaneously.
 - 📋 **Clipboard Magic** — Auto‑pastes links on launch.
 - 🕘 **Download History** — Instantly see what you’ve downloaded before.
@@ -29,6 +29,7 @@ Whether you're saving a single song or downloading an entire playlist, **Mihari*
 - 📂 **On‑Download Actions** — Auto‑play, open folder, or do nothing. Your choice!
 - 🍥 **System Tray** — Access key actions right from your system tray — open your downloads folder or instantly paste & download files!
 - 💾 **Custom Presets** — Save, load, export, and import your favorite download settings in a single click. Perfect for switching between setups effortlessly
+- 📚 **Playlist Support** — Download full playlists in one go. Select specific videos, customize settings for the whole set, and save time.
 
 ---
 

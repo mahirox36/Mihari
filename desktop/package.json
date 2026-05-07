@@ -19,6 +19,10 @@
   },
   "build": {
     "appId": "online.mahirou.mihari.app",
+    "asar": true,
+    "asarUnpack": [
+      "**/*.exe"
+    ],
     "productName": "Mihari",
     "protocols": [
       {
@@ -161,7 +165,7 @@
       },
       {
         "from": "../assets/icon.png",
-        "to": "icon.png" 
+        "to": "icon.png"
       }
     ]
   },

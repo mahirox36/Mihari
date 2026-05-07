@@ -36,7 +36,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="flex flex-col h-screen">
         <Navbar />
-        <div className="h-screen bg-gradient-to-tr from-cyan-100 via-blue-200 to-indigo-200">
+        <div className="h-screen bg-linear-to-tr from-cyan-100 via-blue-200 to-indigo-200">
           {children}
         </div>
       </body>
